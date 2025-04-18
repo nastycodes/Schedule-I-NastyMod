@@ -11,6 +11,7 @@ using static Il2CppScheduleOne.Console;
 using Il2CppScheduleOne.ItemFramework;
 using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.Employees;
+using MelonLoader;
 
 namespace NastyMod_v2.Core
 {
@@ -54,6 +55,7 @@ namespace NastyMod_v2.Core
         public Dictionary<string, List<string>> SpawnerItemsCache = new Dictionary<string, List<string>>();
         public Dictionary<string, bool> SpawnerItemSupportsQualityCache = new Dictionary<string, bool>();
         public Dictionary<string, List<string>> SpawnerItemQualityCache = new Dictionary<string, List<string>>();
+        public Dictionary<string, Dictionary<string, Dictionary<string, string>>> SpawnerFilterCache = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
         public string SpawnerSelectedCategory = Properties.Settings.Default.SpawnerSelectedCategory;
         public int SpawnerItemAmount = Properties.Settings.Default.SpawnerItemAmount;
         public string SpawnerItemFilter = "";
@@ -861,7 +863,7 @@ namespace NastyMod_v2.Core
          * 
          * Returns a list of all items in a given spawner category.
          * 
-         * @param category The category to get items from.
+         * @param Category The category to get items from.
          */
         public Dictionary<string, string> GetSpawnerCategoryItems(string category)
         {
@@ -874,6 +876,54 @@ namespace NastyMod_v2.Core
                 HelperInstance.SendLoggerMsg($"Category '{category}' not found in SpawnerItems.");
                 return new Dictionary<string, string>();
             }
+        }
+
+        /**
+         * FilterSpawnerItems
+         * 
+         * Filters the spawner items based on a given filter string.
+         * 
+         * @param Category The category to filter items from.
+         * @param Filter Filter string to use.
+         * @param Items Items to filter from.
+         * @return Dictionary<string, string> Dictionary of filtered items.
+         */
+        public Dictionary<string, string> FilterSpawnerItems(string Category, string Filter, Dictionary<string, string> Items)
+        {
+            // Check if the category exists in the SpawnerFilterCache
+            if (!SpawnerFilterCache.ContainsKey(Category))
+            {
+                SpawnerFilterCache[Category] = new Dictionary<string, Dictionary<string, string>>();
+            }
+
+            // Check if the filter exists in the SpawnerFilterCache
+            if (SpawnerFilterCache[Category].ContainsKey(Filter))
+            {
+                // Return the cached filtered items
+                return SpawnerFilterCache[Category][Filter];
+            }
+
+            SpawnerFilterCache[Category][Filter] = new Dictionary<string, string>();
+            Dictionary<string, string> FilteredItems = new Dictionary<string, string>();
+
+            foreach (var Item in Items)
+            {
+                MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
+                if (Item.Value.ToLower().Trim().Contains(Filter.ToLower().Trim()))
+                {
+                    FilteredItems[Item.Key] = Item.Value;
+                }
+                else
+                {
+                    MelonLogger.Msg("!Does not contain!");
+                    MelonLogger.Msg("");
+                }
+            }
+
+            // Cache the filtered items
+            SpawnerFilterCache[Category][Filter] = FilteredItems;
+
+            return FilteredItems;
         }
 
         /**

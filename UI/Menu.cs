@@ -758,8 +758,10 @@ namespace NastyMod_v2.UI
         {
             BeginTab();
 
+            // Default spawner category
             if (ModInstance.SpawnerSelectedCategory == "") ModInstance.SpawnerSelectedCategory = ModInstance.GetSpawnerCategories()[0];
 
+            // Sidebar variables
             SidebarWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .25);
             SidebarButtonStyle.fixedWidth = Mathf.Floor(SidebarWidth - (2 * MenuTabButtonSpacing));
 
@@ -768,6 +770,7 @@ namespace NastyMod_v2.UI
             Vector2 TmpSpawnerScrollPosition = ScrollPositions["SpawnerScroll"];
             BeginScrollContainer(ref TmpSpawnerScrollPosition, SidebarWidth, MenuTabHeight - MenuSpacing);
             ScrollPositions["SpawnerScroll"] = TmpSpawnerScrollPosition;
+            // Spawner categories
             foreach (var Category in ModInstance.GetSpawnerCategories())
             {
                 Helper.AddButton(Category, SidebarButtonStyle, () =>
@@ -778,27 +781,36 @@ namespace NastyMod_v2.UI
             EndScrollContainer();
             EndSidebar();
 
+            // Sidebar content variables
             SidebarContentWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .75) - MenuSpacing;
             SidebarContentButtonStyle.fixedWidth = Mathf.Floor(((SidebarContentWidth - (MenuTabButtonSpacing * SidebarContentButtons)) / SidebarContentButtons) - (2 * MenuTabButtonSpacing));
 
             BeginSidebarContent(SidebarContentWidth);
-
+            // Item Filter
             BeginOption("Filter", MediumLabelStyle);
             string SpawnerItemFilterRef = ModInstance.SpawnerItemFilter;
-            Helper.AddInput(ref Textfields, ref SpawnerItemFilterRef, "SpawnerItemFilterInput", MediumLabelStyle.fixedWidth + MenuTabButtonSpacing, 0, (2 * (int)ButtonStyle.fixedWidth) + (int)MediumLabelStyle.fixedWidth, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
+            var CustomTextfieldStyle = TextfieldStyle;
+            CustomTextfieldStyle.fixedWidth = (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth;
+            Helper.AddInput(ref Textfields, ref SpawnerItemFilterRef, "SpawnerItemFilterInput", MediumLabelStyle.fixedWidth + MenuTabButtonSpacing, 0, (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth, 24, LabelStyle, CustomTextfieldStyle, ModInstance.DoNothing);
             ModInstance.SpawnerItemFilter = SpawnerItemFilterRef;
             Helper.AddButton("Clear", ButtonStyle, () =>
             {
+                SpawnerItemFilterRef = "";
                 ModInstance.SpawnerItemFilter = "";
             });
             EndOption();
-
             if (!ScrollPositions.ContainsKey("SpawnerContentScroll")) ScrollPositions["SpawnerContentScroll"] = Vector2.zero;
             Vector2 TmpSpawnerContentScrollPosition = ScrollPositions["SpawnerContentScroll"];
             BeginScrollContainer(ref TmpSpawnerContentScrollPosition, SidebarContentWidth, MenuTabHeight - MenuSpacing - 24 - MenuTabButtonSpacing);
             ScrollPositions["SpawnerContentScroll"] = TmpSpawnerContentScrollPosition;
             var SpawnerItems = ModInstance.GetSpawnerCategoryItems(ModInstance.SpawnerSelectedCategory);
             var CurrentItemCount = 0;
+            // Filter logic
+            if (ModInstance.SpawnerItemFilter != "" && ModInstance.SpawnerItemFilter != " " && ModInstance.SpawnerItemFilter.Length >= 3)
+            {
+                SpawnerItems = ModInstance.FilterSpawnerItems(ModInstance.SpawnerSelectedCategory, ModInstance.SpawnerItemFilter, SpawnerItems);
+            }
+            // Spawner items
             BeginHorizontal();
             foreach (var Item in SpawnerItems)
             {

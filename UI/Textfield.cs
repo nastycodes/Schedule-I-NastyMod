@@ -25,7 +25,8 @@ namespace NastyMod_v2.UI
         private static int NextID = 1000;
 
         // Constants
-        private const float InputCooldown = 0.15f;
+        private const float InputCooldown = .1f;
+        private string LastInputCharacter = "";
 
         // Styles
         private GUIStyle Style;
@@ -228,15 +229,22 @@ namespace NastyMod_v2.UI
          */
         private void HandleTextInput(Event current)
         {
-            // Prevent rapid duplicate input
-            if (current.character != '\0' &&
-                !char.IsControl(current.character) &&
-                Time.time - LastInputTime > InputCooldown)
-            {
-                _Value += current.character;
-                LastInputTime = Time.time;
-                current.Use();
-            }
+            // Check if the character is a valid input
+            if (current.character == '\0' || (!char.IsLetterOrDigit(current.character) && !char.IsWhiteSpace(current.character))) return;
+
+            // Check for input cooldown and character
+            if (((Time.time - LastInputTime) <= InputCooldown) && LastInputCharacter == current.character.ToString()) return;
+
+            // Add the character to the value
+            _Value += current.character;
+            _Value = _Value.Trim();
+
+            // Update the last input time and character
+            LastInputTime = Time.time;
+            LastInputCharacter = current.character.ToString();
+
+            // Consume the event
+            current.Use();
         }
 
         /**
