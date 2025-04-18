@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NastyMod v2", "NastyMod v2.csproj", "{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Debug|x64.ActiveCfg = Debug|x64
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Debug|x64.Build.0 = Debug|x64
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Release|x64.ActiveCfg = Release|x64
+		{CB1F64A9-B503-4F9C-8FE5-2B53D1D9266E}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {01C35498-21E8-48B4-B645-672512280941}
+	EndGlobalSection
+EndGlobal
