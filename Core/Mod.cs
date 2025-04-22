@@ -33,6 +33,9 @@ namespace NastyMod_v2.Core
         // Renderer instance
         public UI.Renderer RendererInstance { get; private set; } = new UI.Renderer();
 
+        // Player height
+        public float PlayerHeight = 1.9f;
+
         // Player variables
         public bool PlayerInfiniteHealth = Properties.Settings.Default.PlayerInfiniteHealth;
         public bool PlayerInfiniteEnergy = Properties.Settings.Default.PlayerInfiniteEnergy;
@@ -78,7 +81,11 @@ namespace NastyMod_v2.Core
         public Dictionary<Employee, float> EmployeesEmployeeSpeed = new Dictionary<Employee, float>();
 
         // Teleport variables
-        private string TeleportSelectedCategory = Properties.Settings.Default.TeleportSelectedCategory;
+        public Dictionary<string, Dictionary<string, Vector3>> TeleportLocations = new Dictionary<string, Dictionary<string, Vector3>>();
+        public Dictionary<string, List<string>> TeleportLocationsCache = new Dictionary<string, List<string>>();
+        public Dictionary<string, Dictionary<string, Dictionary<string, Vector3>>> TeleportFilterCache = new Dictionary<string, Dictionary<string, Dictionary<string, Vector3>>>();
+        public string TeleportSelectedCategory = Properties.Settings.Default.TeleportSelectedCategory;
+        public string TeleportLocationFilter = "";
 
         /**
          * FindGameObjectByPath
@@ -1268,7 +1275,7 @@ namespace NastyMod_v2.Core
 
         #region Teleport mods
         /**
-         * CacheTeleportItems
+         * CacheTeleports
          * 
          * Caches all teleport items and their properties.
          * 
@@ -1276,10 +1283,75 @@ namespace NastyMod_v2.Core
          */
         public void CacheTeleports()
         {
-            // Get all properties
+            try
+            {
+                // Create a dictionary to store teleport items
+                var _TeleportLocations = new Dictionary<string, Dictionary<string, Vector3>>();
 
+                // Get all properties
+                var Properties = PropertyManager.FindObjectsOfType<Property>();
+                foreach (var Property in Properties)
+                {
+                    // Get the property name and ID
+                    string PropertyName = Property.propertyName;
+                    string PropertyId = Property.propertyCode;
+                    // Get the property position
+                    Vector3 PropertyPosition = Property.transform.position;
+                    PropertyPosition.y += (PlayerHeight / 2);
+                    // Add the property to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Properties"))
+                    {
+                        _TeleportLocations["Properties"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Properties"][PropertyName] = PropertyPosition;
+                }
+
+                // Get all NPCs
+                var Npcs = NPCManager.FindObjectsOfType<NPC>();
+                foreach (var Npc in Npcs)
+                {
+                    // Get the NPC name and ID
+                    string NpcName = Npc.FirstName;
+                    string NpcId = Npc.ID;
+                    // Get the NPC position
+                    Vector3 NpcPosition = Npc.transform.position;
+                    NpcPosition.y += (PlayerHeight / 2);
+                    // Add the NPC to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("NPCs"))
+                    {
+                        _TeleportLocations["NPCs"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["NPCs"][NpcName] = NpcPosition;
+                }
+
+                // Get all players
+                var Players = Player.PlayerList;
+                foreach (var Player in Players)
+                {
+                    // Get the player name
+                    string PlayerName = Player.PlayerName;
+                    // Get the player position
+                    Vector3 PlayerPosition = Player.transform.position;
+                    PlayerPosition.y += (PlayerHeight / 2);
+                    // Add the player to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Players"))
+                    {
+                        _TeleportLocations["Players"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Players"][PlayerName] = PlayerPosition;
+                }
+
+                // Add the teleports to the main dictionary
+                TeleportLocations = _TeleportLocations;
+
+                HelperInstance.SendLoggerMsg($"Cached all teleport locations: {TeleportLocations.Count} total");
+            }
+            catch (Exception ex)
+            {
+                HelperInstance.SendLoggerMsg($"Error caching teleports: {ex.Message}");
+            }
         }
-        
+
         /*
          * GetTeleportCategories
          * 
@@ -1289,7 +1361,7 @@ namespace NastyMod_v2.Core
          */
         public List<string> GetTeleportCategories()
         {
-            return TeleportItems.Keys.ToList();
+            return TeleportLocations.Keys.ToList();
         }
 
         /**
@@ -1299,16 +1371,16 @@ namespace NastyMod_v2.Core
          * 
          * @param Category The category to get items from.
          */
-        public Dictionary<string, string> GetTeleportCategoryItems(string category)
+        public Dictionary<string, Vector3> GetTeleportCategoryItems(string category)
         {
-            if (TeleportItems.ContainsKey(category))
+            if (TeleportLocations.ContainsKey(category))
             {
-                return TeleportItems[category];
+                return TeleportLocations[category];
             }
             else
             {
                 HelperInstance.SendLoggerMsg($"Category '{category}' not found in TeleportItems.");
-                return new Dictionary<string, string>();
+                return new Dictionary<string, Vector3>();
             }
         }
 
@@ -1322,31 +1394,27 @@ namespace NastyMod_v2.Core
          * @param Items Items to filter from.
          * @return Dictionary<string, string> Dictionary of filtered items.
          */
-        public Dictionary<string, string> FilterTeleportItems(string Category, string Filter, Dictionary<string, string> Items)
+        public Dictionary<string, Vector3> FilterTeleportItems(string Category, string Filter, Dictionary<string, Vector3> Items)
         {
             // Check if the category exists in the TeleportFilterCache
-            if (!TeleportFilterCache.ContainsKey(Category)) TeleportFilterCache[Category] = new Dictionary<string, Dictionary<string, string>>();
-
+            if (!TeleportFilterCache.ContainsKey(Category)) TeleportFilterCache[Category] = new Dictionary<string, Dictionary<string, Vector3>>();
             // Check and return the filter if it exists
             if (TeleportFilterCache[Category].ContainsKey(Filter)) return TeleportFilterCache[Category][Filter];
-
             // Create a new dictionary for the filtered items
-            TeleportFilterCache[Category][Filter] = new Dictionary<string, string>();
-            Dictionary<string, string> FilteredItems = new Dictionary<string, string>();
-
+            TeleportFilterCache[Category][Filter] = new Dictionary<string, Vector3>();
+            Dictionary<string, Vector3> FilteredItems = new Dictionary<string, Vector3>();
             // Filter the items based on the filter string
             foreach (var Item in Items)
             {
-                var FilterMatch = Item.Value.ToLower().Trim().Contains(Filter.ToLower().Trim());
+                var FilterMatch = Item.Key.ToLower().Trim().Contains(Filter.ToLower().Trim());
                 // MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
                 if (FilterMatch) FilteredItems[Item.Key] = Item.Value;
             }
-
             // Cache the filtered items
             TeleportFilterCache[Category][Filter] = FilteredItems;
-
             return FilteredItems;
         }
+
 
         /**
          * TeleportToLocation
@@ -1356,54 +1424,22 @@ namespace NastyMod_v2.Core
          * @param Location The location to teleport to.
          * @return void
          */
-        public void TeleportToLocation(string Location)
+        public void TeleportToLocation(string Category, string Location)
         {
             // Get the location from the TeleportItems dictionary
-            if (TeleportItems.ContainsKey(Location))
-            {
-                var LocationData = TeleportItems[Location];
-                if (LocationData != null && LocationData.Count > 0)
-                {
-                    // Get the coordinates from the dictionary
-                    var Coordinates = LocationData.FirstOrDefault().Value.Split(',');
-                    if (Coordinates.Length == 3)
-                    {
-                        // Parse the coordinates and teleport the player
-                        float x = float.Parse(Coordinates[0]);
-                        float y = float.Parse(Coordinates[1]);
-                        float z = float.Parse(Coordinates[2]);
-                        PlayerMovement.Instance.TeleportTo(new Vector3(x, y, z));
-                        HelperInstance.SendLoggerMsg($"Teleported to {Location} at coordinates ({x}, {y}, {z})");
-                    }
-                }
-            }
-        }
+            if (!TeleportLocations.ContainsKey(Category)) return;
+            var LocationData = TeleportLocations[Category];
 
-        /**
-         * TeleportToPlayer
-         * 
-         * Teleports the player to another player.
-         * 
-         * @param PlayerName The name of the player to teleport to.
-         * @return void
-         */
-        public void TeleportToPlayer(string PlayerName)
-        {
-            // Get the player from the PlayerList
-            var Player = Player.PlayerList.FirstOrDefault(p => p.Name.Equals(PlayerName, StringComparison.OrdinalIgnoreCase));
-            if (Player != null)
-            {
-                // Teleport to the player's position
-                PlayerMovement.Instance.TeleportTo(Player.transform.position);
-                HelperInstance.SendLoggerMsg($"Teleported to player {PlayerName} at coordinates ({Player.transform.position.x}, {Player.transform.position.y}, {Player.transform.position.z})");
-            }
-            else
-            {
-                HelperInstance.SendLoggerMsg($"Player {PlayerName} not found.");
-            }
-        }
+            if (LocationData == null || !LocationData.ContainsKey(Location)) return;
 
-        
+            // Get the position of the location
+            Vector3 Position = LocationData[Location];
+
+            // Teleport the player to the location
+            PlayerMovement.Instance.Teleport(Position);
+
+            HelperInstance.SendLoggerMsg($"Teleported to {Location} ({Category}) at {Position}");
+        }
         #endregion
 
         /**

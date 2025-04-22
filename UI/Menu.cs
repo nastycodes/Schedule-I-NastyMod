@@ -137,6 +137,7 @@ namespace NastyMod_v2.UI
             Initialized = true;
 
             ModInstance.CacheGameItems();
+            ModInstance.CacheTeleports();
         }
 
         /**
@@ -965,9 +966,74 @@ namespace NastyMod_v2.UI
         {
             BeginTab();
 
-            var CurrentYPos = 0;
+            // Default teleport category
+            if (ModInstance.TeleportSelectedCategory == "") ModInstance.TeleportSelectedCategory = ModInstance.GetTeleportCategories()[0];
 
-            
+            // Categories variables
+            SidebarWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .25);
+            SidebarButtonStyle.fixedWidth = Mathf.Floor(SidebarWidth - (2 * MenuTabButtonSpacing));
+
+            // Categories
+            BeginSidebar(SidebarWidth);
+            if (!ScrollPositions.ContainsKey("TeleportScroll")) ScrollPositions["TeleportScroll"] = Vector2.zero;
+            Vector2 TmpTeleportScrollPosition = ScrollPositions["TeleportScroll"];
+            BeginScrollContainer(ref TmpTeleportScrollPosition, SidebarWidth, MenuTabHeight - MenuSpacing);
+            ScrollPositions["TeleportScroll"] = TmpTeleportScrollPosition;
+            foreach (var Category in ModInstance.GetTeleportCategories())
+            {
+                Helper.AddButton(Category, SidebarButtonStyle, () =>
+                {
+                    ModInstance.TeleportSelectedCategory = Category;
+                });
+            }
+            EndScrollContainer();
+            EndSidebar();
+
+            SidebarContentWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .75) - MenuSpacing;
+            SidebarContentButtonStyle.fixedWidth = Mathf.Floor(((SidebarContentWidth - (MenuTabButtonSpacing * SidebarContentButtons)) / SidebarContentButtons) - (2 * MenuTabButtonSpacing));
+
+            // Category items
+            BeginSidebarContent(SidebarContentWidth);
+            BeginOption("Filter", MediumLabelStyle);
+            string TeleportLocationFilterRef = ModInstance.TeleportLocationFilter;
+            var CustomTextfieldStyle = TextfieldStyle;
+            CustomTextfieldStyle.fixedWidth = (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth;
+            Helper.AddInput(ref Textfields, ref TeleportLocationFilterRef, "TeleportLocationFilterInput", MediumLabelStyle.fixedWidth + (2 * MenuTabButtonSpacing), 0, (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth, 24, MediumLabelStyle, CustomTextfieldStyle, ModInstance.DoNothing);
+            ModInstance.TeleportLocationFilter = TeleportLocationFilterRef;
+            Helper.AddButton("Clear", ButtonStyle, () =>
+            {
+                TeleportLocationFilterRef = "";
+                ModInstance.TeleportLocationFilter = "";
+            });
+            EndOption();
+            if (!ScrollPositions.ContainsKey("TeleportContentScroll")) ScrollPositions["TeleportContentScroll"] = Vector2.zero;
+            Vector2 TmpTeleportContentScrollPosition = ScrollPositions["TeleportContentScroll"];
+            BeginScrollContainer(ref TmpTeleportContentScrollPosition, SidebarContentWidth, MenuTabHeight - MenuSpacing - 24 - MenuTabButtonSpacing);
+            ScrollPositions["TeleportContentScroll"] = TmpTeleportContentScrollPosition;
+            var TeleportItems = ModInstance.GetTeleportCategoryItems(ModInstance.TeleportSelectedCategory);
+            var CurrentItemCount = 0;
+            if (ModInstance.TeleportLocationFilter != "" && ModInstance.TeleportLocationFilter != " " && ModInstance.TeleportLocationFilter.Length >= 3)
+            {
+                TeleportItems = ModInstance.FilterTeleportItems(ModInstance.TeleportSelectedCategory, ModInstance.TeleportLocationFilter, TeleportItems);
+            }
+            BeginHorizontal();
+            foreach (var Item in TeleportItems)
+            {
+                if (CurrentItemCount > SidebarContentButtons - 1)
+                {
+                    EndHorizontal();
+                    BeginHorizontal();
+                    CurrentItemCount = 0;
+                }
+                Helper.AddButton(Item.Key, SidebarContentButtonStyle, () =>
+                {
+                    ModInstance.TeleportToLocation(ModInstance.TeleportSelectedCategory, Item.Key);
+                });
+                CurrentItemCount++;
+            }
+            EndHorizontal();
+            EndScrollContainer();
+            EndSidebarContent();
 
             EndTab();
         }
