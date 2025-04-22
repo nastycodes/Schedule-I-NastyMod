@@ -67,14 +67,14 @@ namespace NastyMod_v2.UI
             TextfieldBgGrayTexture.SetPixel(0, 0, new Color(0.18f, 0.18f, 0.18f));
             TextfieldBgGrayTexture.Apply();
 
-            DefaultStyle.normal.background = TextfieldBgGrayTexture;
-            DefaultStyle.focused.background = TextfieldBgDarkTexture;
-            DefaultStyle.hover.background = TextfieldBgDarkTexture;
-            DefaultStyle.active.background = TextfieldBgDarkTexture;
-            DefaultStyle.onNormal.background = TextfieldBgGrayTexture;
-            DefaultStyle.onHover.background = TextfieldBgDarkTexture;
-            DefaultStyle.onActive.background = TextfieldBgDarkTexture;
-            DefaultStyle.onFocused.background = TextfieldBgDarkTexture;
+            DefaultStyle.normal.background = TextfieldBgDarkTexture;
+            DefaultStyle.focused.background = TextfieldBgGrayTexture;
+            DefaultStyle.hover.background = TextfieldBgGrayTexture;
+            DefaultStyle.active.background = TextfieldBgGrayTexture;
+            DefaultStyle.onNormal.background = TextfieldBgDarkTexture;
+            DefaultStyle.onHover.background = TextfieldBgGrayTexture;
+            DefaultStyle.onActive.background = TextfieldBgGrayTexture;
+            DefaultStyle.onFocused.background = TextfieldBgGrayTexture;
 
             ID = NextID++;
         }

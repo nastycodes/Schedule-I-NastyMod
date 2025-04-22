@@ -82,6 +82,7 @@ namespace NastyMod_v2.UI
         private static GUIStyle SidebarButtonStyle;
         private static GUIStyle SidebarContentButtonStyle;
         private static GUIStyle LabelStyle;
+        private static GUIStyle EmptyLabelStyle;
         private static GUIStyle MediumLabelStyle;
         private static GUIStyle SmallLabelStyle;
         private static GUIStyle TextfieldStyle;
@@ -302,6 +303,13 @@ namespace NastyMod_v2.UI
                 fixedHeight = 24,
             };
 
+            EmptyLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                fixedWidth = 0,
+                fixedHeight = 24
+            };
+
             MediumLabelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 14,
@@ -324,14 +332,12 @@ namespace NastyMod_v2.UI
             var TextfieldBgTexture = new Texture2D(1, 1);
             TextfieldBgTexture.SetPixel(0, 0, BackgroundColor);
             TextfieldBgTexture.Apply();
-            TextfieldStyle.normal.background = TabBgTexture;
-            TextfieldStyle.focused.background = MenuBgTexture;
-            TextfieldStyle.hover.background = MenuBgTexture;
-            TextfieldStyle.active.background = MenuBgTexture;
-            TextfieldStyle.onNormal.background = TabBgTexture;
-            TextfieldStyle.onHover.background = MenuBgTexture;
-            TextfieldStyle.onActive.background = MenuBgTexture;
-            TextfieldStyle.onFocused.background = MenuBgTexture;
+            TextfieldStyle.normal.background = MenuBgTexture;
+            TextfieldStyle.focused.background = TabBgTexture;
+            TextfieldStyle.hover.background = TabBgTexture;
+            TextfieldStyle.onNormal.background = MenuBgTexture;
+            TextfieldStyle.onHover.background = TabBgTexture;
+            TextfieldStyle.onFocused.background = TabBgTexture;
 
             SliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
             {
@@ -343,11 +349,9 @@ namespace NastyMod_v2.UI
             SliderBgTexture.Apply();
             SliderStyle.normal.background = SliderBgTexture;
             SliderStyle.hover.background = SliderBgTexture;
-            SliderStyle.active.background = SliderBgTexture;
             SliderStyle.focused.background = SliderBgTexture;
             SliderStyle.onNormal.background = SliderBgTexture;
             SliderStyle.onHover.background = SliderBgTexture;
-            SliderStyle.onActive.background = SliderBgTexture;
             SliderStyle.onFocused.background = SliderBgTexture;
         }
 
@@ -550,12 +554,15 @@ namespace NastyMod_v2.UI
          * Begins a new option layout.
          * 
          * @param string OptionName The name of the option.
+         * @param GUIStyle _LabelStyle The label style.
+         * @param bool EndOption Whether to end the option layout.
          * @return void
          */
-        private static void BeginOption(string OptionName, GUIStyle _LabelStyle)
+        private static void BeginOption(string OptionName, GUIStyle _LabelStyle, bool EndOption = false)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(OptionName, LabelStyle);
+            if (EndOption) GUILayout.EndHorizontal();
         }
 
         /**
@@ -612,20 +619,32 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption("Infinite Energy", LabelStyle);
             Helper.AddButton(ModInstance.PlayerInfiniteEnergy ? "Enabled" : "Disabled", ButtonStyle, ModInstance.TogglePlayerInfiniteEnergy);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             BeginOption("Infinite Stamina", LabelStyle);
             Helper.AddButton(ModInstance.PlayerInfiniteStamina ? "Enabled" : "Disabled", ButtonStyle, ModInstance.TogglePlayerInfiniteStamina);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption("Never Wanted", LabelStyle);
             Helper.AddButton(ModInstance.PlayerNeverWanted ? "Enabled" : "Disabled", ButtonStyle, ModInstance.TogglePlayerNeverWanted);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             Helper.AddSpace(MenuSpacing);
             CurrentYPos += MenuSpacing;
@@ -639,6 +658,9 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption("Crouch Speed Multiplier", LabelStyle);
             string PlayerCrouchSpeedMultiplierRef = ModInstance.PlayerCrouchSpeedMultiplier.ToString();
             Helper.AddInput(ref Textfields, ref PlayerCrouchSpeedMultiplierRef, "PlayerCrouchSpeedMultiplierInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
@@ -648,6 +670,9 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption("Jump Height Multiplier", LabelStyle);
             string PlayerJumpMultiplierRef = ModInstance.PlayerJumpMultiplier.ToString();
             Helper.AddInput(ref Textfields, ref PlayerJumpMultiplierRef, "PlayerJumpMultiplierInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
@@ -656,6 +681,9 @@ namespace NastyMod_v2.UI
             Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetPlayerJumpMultiplier);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             Helper.AddSpace(MenuSpacing);
             CurrentYPos += MenuSpacing;
@@ -668,6 +696,9 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption($"Change Cash", LabelStyle);
             string PlayerCashAmountRef = ModInstance.PlayerCashAmount.ToString();
             Helper.AddInput(ref Textfields, ref PlayerCashAmountRef, "PlayerCashInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
@@ -677,6 +708,9 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption($"Change Balance", LabelStyle);
             string PlayerBalanceAmountRef = ModInstance.PlayerBalanceAmount.ToString();
             Helper.AddInput(ref Textfields, ref PlayerBalanceAmountRef, "PlayerBalanceInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
@@ -685,9 +719,6 @@ namespace NastyMod_v2.UI
             Helper.AddButton("Remove", ButtonStyle, ModInstance.RemovePlayerBalance);
             EndOption();
             CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
-
-            Helper.AddSpace(MenuSpacing);
-            CurrentYPos += MenuSpacing;
 
             EndTab();
         }
@@ -710,10 +741,16 @@ namespace NastyMod_v2.UI
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
 
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
             BeginOption("Player Box ESP", LabelStyle);
             Helper.AddButton(ModInstance.WorldPlayerEsp ? "Enabled" : "Disabled", ButtonStyle, ModInstance.ToggleWorldPlayerEsp);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             BeginOption("Box ESP Range", LabelStyle);
             string WorldEspRangeRef = ModInstance.WorldEspRange.ToString();
@@ -723,6 +760,9 @@ namespace NastyMod_v2.UI
             Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetWorldEspRange);
             EndOption();
             CurrentYPos += (int)LabelStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             Helper.AddSpace(MenuSpacing);
             CurrentYPos += MenuSpacing;
@@ -735,6 +775,9 @@ namespace NastyMod_v2.UI
             Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetWorldTimeScale);
             EndOption();
             CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
 
             BeginOption("World Time", LabelStyle);
             string WorldTimeRef = ModInstance.WorldTime;
@@ -761,16 +804,16 @@ namespace NastyMod_v2.UI
             // Default spawner category
             if (ModInstance.SpawnerSelectedCategory == "") ModInstance.SpawnerSelectedCategory = ModInstance.GetSpawnerCategories()[0];
 
-            // Sidebar variables
+            // Categories variables
             SidebarWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .25);
             SidebarButtonStyle.fixedWidth = Mathf.Floor(SidebarWidth - (2 * MenuTabButtonSpacing));
 
+            // Categories
             BeginSidebar(SidebarWidth);
             if (!ScrollPositions.ContainsKey("SpawnerScroll")) ScrollPositions["SpawnerScroll"] = Vector2.zero;
             Vector2 TmpSpawnerScrollPosition = ScrollPositions["SpawnerScroll"];
             BeginScrollContainer(ref TmpSpawnerScrollPosition, SidebarWidth, MenuTabHeight - MenuSpacing);
             ScrollPositions["SpawnerScroll"] = TmpSpawnerScrollPosition;
-            // Spawner categories
             foreach (var Category in ModInstance.GetSpawnerCategories())
             {
                 Helper.AddButton(Category, SidebarButtonStyle, () =>
@@ -781,20 +824,18 @@ namespace NastyMod_v2.UI
             EndScrollContainer();
             EndSidebar();
 
-            // Sidebar content variables
             SidebarContentWidth = (int)((MenuTabWidth - (2 * MenuSpacing)) * .75) - MenuSpacing;
             SidebarContentButtonStyle.fixedWidth = Mathf.Floor(((SidebarContentWidth - (MenuTabButtonSpacing * SidebarContentButtons)) / SidebarContentButtons) - (2 * MenuTabButtonSpacing));
 
+            // Category items
             BeginSidebarContent(SidebarContentWidth);
-            // Item Filter
             BeginOption("Filter", MediumLabelStyle);
             string SpawnerItemFilterRef = ModInstance.SpawnerItemFilter;
             var CustomTextfieldStyle = TextfieldStyle;
             CustomTextfieldStyle.fixedWidth = (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth;
-            Helper.AddInput(ref Textfields, ref SpawnerItemFilterRef, "SpawnerItemFilterInput", MediumLabelStyle.fixedWidth + MenuTabButtonSpacing, 0, (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth, 24, LabelStyle, CustomTextfieldStyle, ModInstance.DoNothing);
+            Helper.AddInput(ref Textfields, ref SpawnerItemFilterRef, "SpawnerItemFilterInput", MediumLabelStyle.fixedWidth + (2 * MenuTabButtonSpacing), 0, (2 * (int)SidebarContentButtonStyle.fixedWidth) - (int)MediumLabelStyle.fixedWidth, 24, MediumLabelStyle, CustomTextfieldStyle, ModInstance.DoNothing);
             ModInstance.SpawnerItemFilter = SpawnerItemFilterRef;
-            Helper.AddButton("Clear", ButtonStyle, () =>
-            {
+            Helper.AddButton("Clear", ButtonStyle, () => {
                 SpawnerItemFilterRef = "";
                 ModInstance.SpawnerItemFilter = "";
             });
@@ -805,12 +846,10 @@ namespace NastyMod_v2.UI
             ScrollPositions["SpawnerContentScroll"] = TmpSpawnerContentScrollPosition;
             var SpawnerItems = ModInstance.GetSpawnerCategoryItems(ModInstance.SpawnerSelectedCategory);
             var CurrentItemCount = 0;
-            // Filter logic
             if (ModInstance.SpawnerItemFilter != "" && ModInstance.SpawnerItemFilter != " " && ModInstance.SpawnerItemFilter.Length >= 3)
             {
                 SpawnerItems = ModInstance.FilterSpawnerItems(ModInstance.SpawnerSelectedCategory, ModInstance.SpawnerItemFilter, SpawnerItems);
             }
-            // Spawner items
             BeginHorizontal();
             foreach (var Item in SpawnerItems)
             {
@@ -820,12 +859,7 @@ namespace NastyMod_v2.UI
                     BeginHorizontal();
                     CurrentItemCount = 0;
                 }
-
-                Helper.AddButton(Item.Key, SidebarContentButtonStyle, () =>
-                {
-                    ModInstance.SpawnItem(Item.Value, ModInstance.SpawnerItemAmount);
-                });
-
+                Helper.AddButton(Item.Key, SidebarContentButtonStyle, () => ModInstance.SpawnItem(Item.Value, ModInstance.SpawnerItemAmount));
                 CurrentItemCount++;
             }
             EndHorizontal();
@@ -846,7 +880,76 @@ namespace NastyMod_v2.UI
         {
             BeginTab();
 
+            var CurrentYPos = 0;
 
+            BeginOption("Stack Size", LabelStyle);
+            string MiscStackSizeRef = ModInstance.MiscStackSize.ToString();
+            Helper.AddInput(ref Textfields, ref MiscStackSizeRef, "WorldStackSize", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
+            ModInstance.MiscStackSize = int.TryParse(MiscStackSizeRef, out var MiscStackSizeResult) ? MiscStackSizeResult : 20;
+            ModInstance.SetMiscStackSize();
+            Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetMiscStackSize);
+            Helper.AddButton(ModInstance.MiscUseStackSize ? "Disabled" : "Enabled", ButtonStyle, ModInstance.ToggleMiscStackSize);
+            EndOption();
+            CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
+            BeginOption("Deal Success Chance", LabelStyle);
+            string MiscDealSuccessChanceRef = ModInstance.MiscDealSuccessChance.ToString();
+            Helper.AddInput(ref Textfields, ref MiscDealSuccessChanceRef, "MiscDealSuccessChanceInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
+            ModInstance.MiscDealSuccessChance = float.TryParse(MiscDealSuccessChanceRef, out var MiscDealSuccessChanceResult) ? MiscDealSuccessChanceResult : 0.5f;
+            ModInstance.SetMiscDealSuccessChance();
+            Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetMiscDealSuccessChance);
+            Helper.AddButton(ModInstance.MiscUseDealSuccessChance ? "Disabled" : "Enabled", ButtonStyle, ModInstance.ToggleMiscDealSuccessChance);
+            EndOption();
+            CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
+            // BeginOption("Trash Grabber Capacity", LabelStyle);
+            // string MiscTrashGrabberCapacityRef = ModInstance.MiscTrashGrabberCapacity.ToString();
+            // Helper.AddInput(ref Textfields, ref MiscTrashGrabberCapacityRef, "MiscTrashGrabberCapacityInput", LabelStyle.fixedWidth + MenuTabButtonSpacing, CurrentYPos + MenuTabButtonSpacing - 4, 80, 24, LabelStyle, TextfieldStyle, ModInstance.DoNothing);
+            // ModInstance.MiscTrashGrabberCapacity = int.TryParse(MiscTrashGrabberCapacityRef, out var MiscTrashGrabberCapacityResult) ? MiscTrashGrabberCapacityResult : 21;
+            // ModInstance.SetMiscTrashGrabberCapacity();
+            // Helper.AddButton("Reset", ButtonStyle, ModInstance.ResetMiscTrashGrabberCapacity);
+            // Helper.AddButton(ModInstance.MiscUseTrashGrabberCapacity ? "Disabled" : "Enabled", ButtonStyle, ModInstance.ToggleMiscTrashGrabberCapacity);
+            // EndOption();
+            // CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddLabel("Modify Equipped Item", LabelStyle);
+            Helper.AddLabel("Item Quality", LabelStyle);
+            BeginOption("", EmptyLabelStyle);
+            foreach (var Quality in ModInstance.GetProductQualities())
+            {
+                Helper.AddButton(Quality, ButtonStyle, () => ModInstance.SetMiscEquippedProductQuality(Quality));
+            }
+            EndOption();
+            CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
+            Helper.AddLabel("Package Product", LabelStyle);
+            BeginOption("", EmptyLabelStyle);
+            foreach (var Packaging in ModInstance.GetProductPackagings())
+            {
+                Helper.AddButton(Packaging, ButtonStyle, () => ModInstance.SetMiscEquippedProductPackaging(Packaging));
+            }
+            EndOption();
+            CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
+
+            Helper.AddSpace(MenuTabButtonSpacing);
+            CurrentYPos += MenuTabButtonSpacing;
+
+            Helper.AddLabel("Unlock All", LabelStyle);
+            BeginOption("", EmptyLabelStyle);
+            Helper.AddButton("All NPCs", ButtonStyle, () => ModInstance.MiscUnlockAllNpcs());
+            Helper.AddButton("All Properties", ButtonStyle, () => ModInstance.MiscUnlockAllProperties());
+            Helper.AddButton("All Achievements", ButtonStyle, () => ModInstance.MiscUnlockAllAchievements());
+            EndOption();
+            CurrentYPos += (int)ButtonStyle.fixedHeight + MenuTabButtonSpacing;
 
             EndTab();
         }
@@ -862,7 +965,9 @@ namespace NastyMod_v2.UI
         {
             BeginTab();
 
+            var CurrentYPos = 0;
 
+            
 
             EndTab();
         }
@@ -877,6 +982,8 @@ namespace NastyMod_v2.UI
         private static void RenderEmployeesTab()
         {
             BeginTab();
+
+            var CurrentYPos = 0;
 
 
 

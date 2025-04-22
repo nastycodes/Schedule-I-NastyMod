@@ -12,6 +12,8 @@ using Il2CppScheduleOne.ItemFramework;
 using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.Employees;
 using MelonLoader;
+using Il2CppScheduleOne.NPCs.Relation;
+using Il2CppScheduleOne.Property;
 
 namespace NastyMod_v2.Core
 {
@@ -77,6 +79,43 @@ namespace NastyMod_v2.Core
 
         // Teleport variables
         private string TeleportSelectedCategory = Properties.Settings.Default.TeleportSelectedCategory;
+
+        /**
+         * FindGameObjectByPath
+         * 
+         * Finds a game object by its path.
+         * 
+         * @param path The path to the game object.
+         * @return The found game object or null if not found.
+         */
+        private GameObject FindGameObjectByPath(string path)
+        {
+            Transform transform = null;
+            string[] array = path.Split('/');
+            foreach (string text in array)
+            {
+                if (transform == null)
+                {
+                    GameObject gameObject = GameObject.Find(text);
+                    if (gameObject == null)
+                    {
+                        return null;
+                    }
+
+                    transform = gameObject.transform;
+                }
+                else
+                {
+                    transform = transform.Find(text);
+                    if (transform == null)
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            return transform?.gameObject;
+        }
 
         #region Player mods
         /**
@@ -891,33 +930,22 @@ namespace NastyMod_v2.Core
         public Dictionary<string, string> FilterSpawnerItems(string Category, string Filter, Dictionary<string, string> Items)
         {
             // Check if the category exists in the SpawnerFilterCache
-            if (!SpawnerFilterCache.ContainsKey(Category))
-            {
-                SpawnerFilterCache[Category] = new Dictionary<string, Dictionary<string, string>>();
-            }
+            if (!SpawnerFilterCache.ContainsKey(Category)) SpawnerFilterCache[Category] = new Dictionary<string, Dictionary<string, string>>();
 
-            // Check if the filter exists in the SpawnerFilterCache
-            if (SpawnerFilterCache[Category].ContainsKey(Filter))
-            {
-                // Return the cached filtered items
-                return SpawnerFilterCache[Category][Filter];
-            }
+            // Check and return the filter if it exists
+            if (SpawnerFilterCache[Category].ContainsKey(Filter))return SpawnerFilterCache[Category][Filter];
 
+            // Create a new dictionary for the filtered items
             SpawnerFilterCache[Category][Filter] = new Dictionary<string, string>();
             Dictionary<string, string> FilteredItems = new Dictionary<string, string>();
 
+            // Filter the items based on the filter string
             foreach (var Item in Items)
             {
-                MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
-                if (Item.Value.ToLower().Trim().Contains(Filter.ToLower().Trim()))
-                {
-                    FilteredItems[Item.Key] = Item.Value;
-                }
-                else
-                {
-                    MelonLogger.Msg("!Does not contain!");
-                    MelonLogger.Msg("");
-                }
+                var FilterMatch = Item.Value.ToLower().Trim().Contains(Filter.ToLower().Trim());
+                // MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
+
+                if (FilterMatch) FilteredItems[Item.Key] = Item.Value;
             }
 
             // Cache the filtered items
@@ -948,7 +976,434 @@ namespace NastyMod_v2.Core
         #endregion
 
         #region Misc mods
+        /**
+        * SetMiscStackSize
+        * 
+        * Sets the stack size for items in the game.
+        *
+        * @return void
+        */
+        public void SetMiscStackSize() {
+            if (MiscStackSize != Properties.Settings.Default.MiscStackSize)
+            {
+                Properties.Settings.Default.MiscStackSize = MiscStackSize;
+                Properties.Settings.Default.Save();
 
+                HelperInstance.SendLoggerMsg($"Misc - Stack Size set to {MiscStackSize}");
+            }
+        }
+
+        /**
+         * ResetMiscStackSize
+         * 
+         * Resets the stack size for items in the game to default.
+         *
+         * @return void
+         */
+        public void ResetMiscStackSize() {
+            var Value = GetDefaultMiscStackSize();
+
+            if (Properties.Settings.Default.MiscStackSize != Value)
+            {
+                Properties.Settings.Default.MiscStackSize = Value;
+                Properties.Settings.Default.Save();
+
+                HelperInstance.SendLoggerMsg($"Misc - Stack Size reset to {MiscStackSize}");
+            }
+        }
+
+        /**
+         * GetDefaultMiscStackSize
+         * 
+         * Gets the default stack size.
+         *
+         * @return int The default stack size.
+         */
+        public int GetDefaultMiscStackSize() {
+            return 20;
+        }
+
+        /**
+         * ToggleMiscStackSize
+         * 
+         * Toggles the stack size for items in the game.
+         * 
+         * @return void
+         */
+        public void ToggleMiscStackSize()
+        {
+            MiscUseStackSize = !MiscUseStackSize;
+            HelperInstance.SendLoggerMsg($"Misc - Stack Size toggled! (now {MiscUseStackSize})");
+        }
+
+        /**
+         * SetMiscDealSuccessChance
+         * 
+         * Sets the deal success chance for items in the game.
+         *
+         * @return void
+         */
+        public void SetMiscDealSuccessChance() {
+            if (Properties.Settings.Default.MiscDealSuccessChance != MiscDealSuccessChance)
+            {
+                Properties.Settings.Default.MiscDealSuccessChance = MiscDealSuccessChance;
+                Properties.Settings.Default.Save();
+
+                HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance set to {MiscDealSuccessChance}");
+            }
+        }
+
+        /**
+         * ResetMiscDealSuccessChance
+         * 
+         * Resets the deal success chance for items in the game to default.
+         *
+         * @return void
+         */
+        public void ResetMiscDealSuccessChance() {
+            var Value = GetDefaultMiscDealSuccessChance();
+
+            if (Properties.Settings.Default.MiscDealSuccessChance != Value)
+            {
+                Properties.Settings.Default.MiscDealSuccessChance = Value;
+                Properties.Settings.Default.Save();
+
+                HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance reset to {MiscDealSuccessChance}");
+            }
+        }
+
+        /**
+         * GetDefaultMiscDealSuccessChance
+         * 
+         * Gets the default deal success chance.
+         *
+         * @return float The default deal success chance.
+         */
+        public float GetDefaultMiscDealSuccessChance() {
+            return .75f;
+        }
+
+        /**
+         * ToggleMiscDealSuccessChance
+         * 
+         * Toggles the deal success chance for items in the game.
+         * 
+         * @return void
+         */
+        public void ToggleMiscDealSuccessChance()
+        {
+            MiscUseDealSuccessChance = !MiscUseDealSuccessChance;
+            HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance toggled! (now {MiscUseDealSuccessChance})");
+        }
+
+        /**
+         * GetProductQualities
+         * 
+         * Gets all product qualities.
+         * 
+         * @return List<string> A list of all product qualities.
+         */
+        public List<string> GetProductQualities()
+        {
+            var Qualities = new List<string>();
+            foreach (var Quality in Enum.GetValues(typeof(EQuality)))
+            {
+                Qualities.Add(Quality.ToString());
+            }
+            return Qualities;
+        }
+
+        /**
+         * GetProductPackagings
+         * 
+         * Gets all product packagings.
+         * 
+         * @return List<string> A list of all product packagings.
+         */
+        public List<string> GetProductPackagings()
+        {
+            var Packagings = new List<string>();
+            foreach (var Category in SpawnerItems)
+            {
+                if (Category.Key == "Packaging")
+                {
+                    foreach (var Packaging in Category.Value)
+                    {
+                        Packagings.Add(Packaging.Key);
+                    }
+                }
+            }
+
+            return Packagings;
+        }
+
+        /**
+         * SetMiscEquippedProductQuality
+         * 
+         * Sets the equipped product quality.
+         * 
+         * @param Quality The quality to set.
+         * @return void
+         */
+        public void SetMiscEquippedProductQuality(string Quality)
+        {
+
+            SetQuality command = new SetQuality();
+            Il2CppSystem.Collections.Generic.List<string> args = new Il2CppSystem.Collections.Generic.List<string>();
+            args.Add(Quality);
+            command.Execute(args);
+
+            HelperInstance.SendLoggerMsg($"Misc - Equipped Product Quality set to {Quality}");
+        }
+
+        /**
+         * SetMiscEquippedProductPackaging
+         * 
+         * Sets the equipped product packaging.
+         * 
+         * @param Packaging The packaging to set.
+         * @return void
+         */
+        public void SetMiscEquippedProductPackaging(string Packaging)
+        {
+            PackageProduct command = new PackageProduct();
+            Il2CppSystem.Collections.Generic.List<string> args = new Il2CppSystem.Collections.Generic.List<string>();
+            args.Add(Packaging);
+            command.Execute(args);
+            HelperInstance.SendLoggerMsg($"Misc - Equipped Product Packaging set to {Packaging}");
+        }
+
+        /**
+         * MiscUnlockAllNpcs
+         * 
+         * Unlocks all NPCs in the game.
+         * 
+         * @return void
+         */
+        public void MiscUnlockAllNpcs()
+        {
+            var UnlockedNpcCount = 0;
+            foreach (NPC npc in NPCManager.NPCRegistry)
+            {
+                try
+                {
+                    NPCRelationData relation = npc.RelationData;
+                    if (relation != null)
+                    {
+                        relation.Unlock(NPCRelationData.EUnlockType.Recommendation, true);
+                        UnlockedNpcCount++;
+
+                        // MelonLogger.Msg($"Unlocked NPC: {npc.FirstName ?? npc.ID} {npc.LastName ?? ""}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle the exception if needed
+                    HelperInstance.SendLoggerMsg($"Error unlocking NPC: {npc.FirstName ?? npc.ID} {npc.LastName ?? ""} - {ex.Message}");
+                }
+            }
+
+            // Log the number of unlocked NPCs
+            HelperInstance.SendLoggerMsg($"Unlocked {UnlockedNpcCount} NPCs in the game.");
+        }
+
+        /**
+         * MiscUnlockAllProperties
+         * 
+         * Unlocks all properties in the game.
+         *
+         * @return void
+         */
+        public void MiscUnlockAllProperties()
+        {
+            var UnlockedPropertiesCount = 0;
+            foreach (var Property in PropertyManager.FindObjectsOfType<Property>())
+            {
+                try
+                {
+                    // Set the property to owned
+                    Property.SetOwned();
+                    UnlockedPropertiesCount++;
+                }
+                catch (Exception ex)
+                {
+                    // Log the error
+                    HelperInstance.SendLoggerMsg($"Error unlocking property: {Property.propertyName ?? Property.propertyCode} - {ex.Message}");
+                }
+            }
+
+            // Log the number of unlocked properties
+            HelperInstance.SendLoggerMsg($"Unlocked {UnlockedPropertiesCount} Properties in the game.");
+        }
+
+        /**
+         * MiscUnlockAllAchievements
+         *
+         * Unlocks all achievements in the game.
+         *
+         * @return void
+         */
+        public void MiscUnlockAllAchievements()
+        {
+            var UnlockedAchievementsCount = 0;
+            foreach (var achievement in Enum.GetValues(typeof(AchievementManager.EAchievement)))
+            {
+                try
+                {
+                    // Unlock the achievement
+                    AchievementManager.Instance.UnlockAchievement((AchievementManager.EAchievement)achievement);
+                    UnlockedAchievementsCount++;
+                }
+                catch (Exception ex)
+                {
+                    // Log the error
+                    HelperInstance.SendLoggerMsg($"Error unlocking achievement: {achievement} - {ex.Message}");
+                }
+            }
+
+            // Log the number of unlocked achievements
+            HelperInstance.SendLoggerMsg($"Unlocked {UnlockedAchievementsCount} Achievements in the game.");
+        }
+        #endregion
+
+        #region Teleport mods
+        /**
+         * CacheTeleportItems
+         * 
+         * Caches all teleport items and their properties.
+         * 
+         * @return void
+         */
+        public void CacheTeleports()
+        {
+            // Get all properties
+
+        }
+        
+        /*
+         * GetTeleportCategories
+         * 
+         * Returns a list of all teleport categories.
+         * 
+         * @return List<string> A list of all teleport categories.
+         */
+        public List<string> GetTeleportCategories()
+        {
+            return TeleportItems.Keys.ToList();
+        }
+
+        /**
+         * GetTeleportCategoryItems
+         * 
+         * Returns a list of all items in a given teleport category.
+         * 
+         * @param Category The category to get items from.
+         */
+        public Dictionary<string, string> GetTeleportCategoryItems(string category)
+        {
+            if (TeleportItems.ContainsKey(category))
+            {
+                return TeleportItems[category];
+            }
+            else
+            {
+                HelperInstance.SendLoggerMsg($"Category '{category}' not found in TeleportItems.");
+                return new Dictionary<string, string>();
+            }
+        }
+
+        /**
+         * FilterTeleportItems
+         * 
+         * Filters the teleport items based on a given filter string.
+         * 
+         * @param Category The category to filter items from.
+         * @param Filter Filter string to use.
+         * @param Items Items to filter from.
+         * @return Dictionary<string, string> Dictionary of filtered items.
+         */
+        public Dictionary<string, string> FilterTeleportItems(string Category, string Filter, Dictionary<string, string> Items)
+        {
+            // Check if the category exists in the TeleportFilterCache
+            if (!TeleportFilterCache.ContainsKey(Category)) TeleportFilterCache[Category] = new Dictionary<string, Dictionary<string, string>>();
+
+            // Check and return the filter if it exists
+            if (TeleportFilterCache[Category].ContainsKey(Filter)) return TeleportFilterCache[Category][Filter];
+
+            // Create a new dictionary for the filtered items
+            TeleportFilterCache[Category][Filter] = new Dictionary<string, string>();
+            Dictionary<string, string> FilteredItems = new Dictionary<string, string>();
+
+            // Filter the items based on the filter string
+            foreach (var Item in Items)
+            {
+                var FilterMatch = Item.Value.ToLower().Trim().Contains(Filter.ToLower().Trim());
+                // MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
+                if (FilterMatch) FilteredItems[Item.Key] = Item.Value;
+            }
+
+            // Cache the filtered items
+            TeleportFilterCache[Category][Filter] = FilteredItems;
+
+            return FilteredItems;
+        }
+
+        /**
+         * TeleportToLocation
+         * 
+         * Teleports the player to a given location.
+         * 
+         * @param Location The location to teleport to.
+         * @return void
+         */
+        public void TeleportToLocation(string Location)
+        {
+            // Get the location from the TeleportItems dictionary
+            if (TeleportItems.ContainsKey(Location))
+            {
+                var LocationData = TeleportItems[Location];
+                if (LocationData != null && LocationData.Count > 0)
+                {
+                    // Get the coordinates from the dictionary
+                    var Coordinates = LocationData.FirstOrDefault().Value.Split(',');
+                    if (Coordinates.Length == 3)
+                    {
+                        // Parse the coordinates and teleport the player
+                        float x = float.Parse(Coordinates[0]);
+                        float y = float.Parse(Coordinates[1]);
+                        float z = float.Parse(Coordinates[2]);
+                        PlayerMovement.Instance.TeleportTo(new Vector3(x, y, z));
+                        HelperInstance.SendLoggerMsg($"Teleported to {Location} at coordinates ({x}, {y}, {z})");
+                    }
+                }
+            }
+        }
+
+        /**
+         * TeleportToPlayer
+         * 
+         * Teleports the player to another player.
+         * 
+         * @param PlayerName The name of the player to teleport to.
+         * @return void
+         */
+        public void TeleportToPlayer(string PlayerName)
+        {
+            // Get the player from the PlayerList
+            var Player = Player.PlayerList.FirstOrDefault(p => p.Name.Equals(PlayerName, StringComparison.OrdinalIgnoreCase));
+            if (Player != null)
+            {
+                // Teleport to the player's position
+                PlayerMovement.Instance.TeleportTo(Player.transform.position);
+                HelperInstance.SendLoggerMsg($"Teleported to player {PlayerName} at coordinates ({Player.transform.position.x}, {Player.transform.position.y}, {Player.transform.position.z})");
+            }
+            else
+            {
+                HelperInstance.SendLoggerMsg($"Player {PlayerName} not found.");
+            }
+        }
+
+        
         #endregion
 
         /**
