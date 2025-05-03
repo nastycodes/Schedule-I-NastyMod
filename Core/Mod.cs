@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
-using MelonLoader;
 using UnityEngine;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.PlayerScripts;
@@ -21,8 +20,6 @@ using Il2CppScheduleOne.Economy;
 using Il2CppScheduleOne.Storage;
 using Il2CppScheduleOne.GameTime;
 using Il2CppScheduleOne.ObjectScripts;
-using UnityEngine.SceneManagement;
-using System.Diagnostics.Eventing.Reader;
 
 namespace NastyMod_v2.Core
 {
@@ -2291,6 +2288,13 @@ namespace NastyMod_v2.Core
         }
         #endregion
 
+
+        /**
+         * CheckProperties
+         * 
+         * Gets all properties and their employees.
+         * 
+         * 
         /**
          * CheckEmployees
          * 
@@ -2309,11 +2313,9 @@ namespace NastyMod_v2.Core
             // Get all properties
             var Properties = PropertyManager.FindObjectsOfType<Property>();
             foreach (var Property in Properties) {
-                // Get the property name
-                string PropertyName = Property.propertyName;
-
-                // Get the property employees
-                var EmployeesList = Property.Employees;
+                // Get the property name and employees
+                var PropertyName = Property.propertyName;
+                var PropertyEmployees = Property.Employees;
 
                 // Add the property to the employee dictionary
                 if (!Employees.ContainsKey(PropertyName))
@@ -2321,9 +2323,9 @@ namespace NastyMod_v2.Core
                     Employees[PropertyName] = new Dictionary<string, List<Employee>>();
                 }
 
-                if (EmployeesList == null || EmployeesList.Count == 0) continue;
+                if (PropertyEmployees == null || PropertyEmployees.Count == 0) continue;
 
-                foreach (var Employee in EmployeesList)
+                foreach (var Employee in PropertyEmployees)
                 {
                     // Get the employee guid, name and type;
                     var EmployeeGuid = Employee.GUID;

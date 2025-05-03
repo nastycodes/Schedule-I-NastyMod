@@ -1263,11 +1263,6 @@ namespace NastyMod_v2.UI
 
             var CurrentYPos = MenuTabButtonSpacing;
 
-            /**
-             * TODO
-             * Loop through all employee types and add buttons for each employee type to add
-             */
-
             if (EmployeesItems.Count > 0) {
                 foreach (var Item in EmployeesItems)
                 {
