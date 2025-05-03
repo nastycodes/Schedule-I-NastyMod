@@ -101,7 +101,7 @@ namespace NastyMod_v2.UI
         public static void AddInput(ref Dictionary<string, Textfield> Textfields, ref string Value, string ID, float X, float Y, int Width, int Height, GUIStyle LabelStyle, GUIStyle TextfieldStyle, System.Action Function)
         {
             // Make a label take its place
-            GUILayout.Label("", LabelStyle, GUILayout.Width(Width), GUILayout.Height(Height));
+            GUILayout.Label("", GUILayout.Width(Width), GUILayout.Height(Height));
 
             // Build the text field
             Rect InputRect = new Rect(X, Y, Width, Height);

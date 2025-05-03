@@ -54,7 +54,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="MiscDealSuccessChance" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">0.75</Value>
+      <Value Profile="(Default)">75</Value>
     </Setting>
     <Setting Name="MiscUseTrashGrabberCapacity" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
@@ -73,6 +73,21 @@
     </Setting>
     <Setting Name="TeleportSelectedCategory" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="WorldFreezeTime" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="PlayerNoClip" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="MiscInstantDeadDrop" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="MiscInstantLaundering" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="MiscInstantMixing" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

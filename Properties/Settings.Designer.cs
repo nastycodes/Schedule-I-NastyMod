@@ -229,7 +229,7 @@ namespace NastyMod_v2.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.75")]
+        [global::System.Configuration.DefaultSettingValueAttribute("75")]
         public float MiscDealSuccessChance {
             get {
                 return ((float)(this["MiscDealSuccessChance"]));
@@ -308,6 +308,66 @@ namespace NastyMod_v2.Properties {
             }
             set {
                 this["TeleportSelectedCategory"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool WorldFreezeTime {
+            get {
+                return ((bool)(this["WorldFreezeTime"]));
+            }
+            set {
+                this["WorldFreezeTime"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool PlayerNoClip {
+            get {
+                return ((bool)(this["PlayerNoClip"]));
+            }
+            set {
+                this["PlayerNoClip"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MiscInstantDeadDrop {
+            get {
+                return ((bool)(this["MiscInstantDeadDrop"]));
+            }
+            set {
+                this["MiscInstantDeadDrop"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MiscInstantLaundering {
+            get {
+                return ((bool)(this["MiscInstantLaundering"]));
+            }
+            set {
+                this["MiscInstantLaundering"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MiscInstantMixing {
+            get {
+                return ((bool)(this["MiscInstantMixing"]));
+            }
+            set {
+                this["MiscInstantMixing"] = value;
             }
         }
     }

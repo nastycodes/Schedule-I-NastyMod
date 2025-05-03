@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
+using HarmonyLib;
+using MelonLoader;
 using UnityEngine;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.PlayerScripts;
@@ -11,9 +14,15 @@ using static Il2CppScheduleOne.Console;
 using Il2CppScheduleOne.ItemFramework;
 using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.Employees;
-using MelonLoader;
 using Il2CppScheduleOne.NPCs.Relation;
 using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.UI.Shop;
+using Il2CppScheduleOne.Economy;
+using Il2CppScheduleOne.Storage;
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.ObjectScripts;
+using UnityEngine.SceneManagement;
+using System.Diagnostics.Eventing.Reader;
 
 namespace NastyMod_v2.Core
 {
@@ -27,6 +36,9 @@ namespace NastyMod_v2.Core
      */
     public class Mod
     {
+        // Singleton instance reference
+        public static Mod Instance { get; private set; }
+
         // Helper instance
         public Helper HelperInstance { get; private set; } = new Helper();
 
@@ -37,13 +49,17 @@ namespace NastyMod_v2.Core
         public float PlayerHeight = 1.9f;
 
         // Player variables
+        public Transform PlayerLocal;
         public bool PlayerInfiniteHealth = Properties.Settings.Default.PlayerInfiniteHealth;
-        public bool PlayerInfiniteEnergy = Properties.Settings.Default.PlayerInfiniteEnergy;
         public bool PlayerInfiniteStamina = Properties.Settings.Default.PlayerInfiniteStamina;
+        public bool PlayerNoClip = Properties.Settings.Default.PlayerNoClip;
         public bool PlayerNeverWanted = Properties.Settings.Default.PlayerNeverWanted;
         public float PlayerMoveSpeedMultiplier = Properties.Settings.Default.PlayerMoveSpeedMultiplier;
+        public float PlayerDefaultMoveSpeedMultiplier = 1f;
         public float PlayerCrouchSpeedMultiplier = Properties.Settings.Default.PlayerCrouchSpeedMultiplier;
+        public float PlayerDefaultCrouchSpeedMultiplier = 0.6f;
         public float PlayerJumpMultiplier = Properties.Settings.Default.PlayerJumpMultiplier;
+        public float PlayerDefaultJumpMultiplier = 1f;
         public int PlayerExpAmount = 1000;
         public int PlayerCashAmount = 1000;
         public int PlayerBalanceAmount = 1000;
@@ -54,6 +70,7 @@ namespace NastyMod_v2.Core
         public float WorldEspRange = Properties.Settings.Default.WorldEspRange;
         public float WorldTimeScale = Properties.Settings.Default.WorldTimeScale;
         public string WorldTime = Properties.Settings.Default.WorldTime;
+        public bool WorldFreezeTime = Properties.Settings.Default.WorldFreezeTime;
 
         // Spawner variables
         public Dictionary<string, Dictionary<string, string>> SpawnerItems = new Dictionary<string, Dictionary<string, string>>();
@@ -66,26 +83,64 @@ namespace NastyMod_v2.Core
         public string SpawnerItemFilter = "";
 
         // Misc variables
+        public Dictionary<string, Supplier> MiscSuppliers = new Dictionary<string, Supplier>();
         public bool MiscUseStackSize = Properties.Settings.Default.MiscUseStackSize;
         public int MiscStackSize = Properties.Settings.Default.MiscStackSize;
+        public Dictionary<string, int> MiscStackSizeDefaults = new Dictionary<string, int>();
         public bool MiscUseDealSuccessChance = Properties.Settings.Default.MiscUseDealSuccessChance;
         public float MiscDealSuccessChance = Properties.Settings.Default.MiscDealSuccessChance;
         public bool MiscUseTrashGrabberCapacity = Properties.Settings.Default.MiscUseTrashGrabberCapacity;
         public int MiscTrashGrabberCapacity = Properties.Settings.Default.MiscTrashGrabberCapacity;
         public bool MiscUsePlantGrowSpeedMultiplier = Properties.Settings.Default.MiscUsePlantGrowSpeedMultiplier;
         public float MiscPlantGrowSpeedMultiplier = Properties.Settings.Default.MiscPlantGrowSpeedMultiplier;
+        public bool MiscInstantDeadDrop = Properties.Settings.Default.MiscInstantDeadDrop;
+        public float LastDeadDropCheck = 0f;
+        public bool MiscInstantLaundering = Properties.Settings.Default.MiscInstantLaundering;
+        public float LastLaunderingCheck = 0f;
+        public bool MiscInstantMixing = Properties.Settings.Default.MiscInstantMixing;
+        public float LastMixingCheck = 0f;
 
         // Employees variables
+        public Dictionary<string, Dictionary<string, List<Employee>>> Employees = new Dictionary<string, Dictionary<string, List<Employee>>>();
+        public Dictionary<Il2CppSystem.Guid, Botanist> BotanistEmployees = new Dictionary<Il2CppSystem.Guid, Botanist>();
+        public Dictionary<Il2CppSystem.Guid, Packager> PackagerEmployees = new Dictionary<Il2CppSystem.Guid, Packager>();
+        public Dictionary<Il2CppSystem.Guid, Dictionary<string, float>> EmployeesSpeed = new Dictionary<Il2CppSystem.Guid, Dictionary<string, float>>();
+        public Dictionary<string, float> EmployeesDefaultSpeed = new Dictionary<string, float>
+        {
+            { "Soil Pour Time", 10f },
+            { "Water Pour Time", 10f },
+            { "Additive Pour Time", 10f },
+            { "Seed Sow Time", 15f },
+            { "Harvest Time", 15f }
+        };
         public string EmployeesSelectedProperty = Properties.Settings.Default.EmployeesSelectedProperty;
-        public EEmployeeType EmployeesSelectedType = EEmployeeType.Handler;
-        public Dictionary<Employee, float> EmployeesEmployeeSpeed = new Dictionary<Employee, float>();
+        public string EmployeesFilter = "";
 
         // Teleport variables
         public Dictionary<string, Dictionary<string, Vector3>> TeleportLocations = new Dictionary<string, Dictionary<string, Vector3>>();
-        public Dictionary<string, List<string>> TeleportLocationsCache = new Dictionary<string, List<string>>();
         public Dictionary<string, Dictionary<string, Dictionary<string, Vector3>>> TeleportFilterCache = new Dictionary<string, Dictionary<string, Dictionary<string, Vector3>>>();
         public string TeleportSelectedCategory = Properties.Settings.Default.TeleportSelectedCategory;
         public string TeleportLocationFilter = "";
+
+        /**
+         * SetInstanceReference
+         * 
+         * Sets the singleton instance reference.
+         * 
+         * @return void
+         */
+        public void SetInstanceReference()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+                HelperInstance.SendLoggerMsg("Mod instance reference set!");
+            }
+            else
+            {
+                HelperInstance.SendLoggerMsg("Mod instance reference already set!");
+            }
+        }
 
         /**
          * FindGameObjectByPath
@@ -147,16 +202,13 @@ namespace NastyMod_v2.Core
                 }
             }
 
-            if (PlayerInfiniteEnergy)
+            if (PlayerInfiniteStamina)
             {
                 if (Player.Local.Energy.CurrentEnergy < PlayerEnergy.MAX_ENERGY)
                 {
                     Player.Local.Energy.SetEnergy(PlayerEnergy.MAX_ENERGY);
                 }
-            }
 
-            if (PlayerInfiniteStamina)
-            {
                 if (PlayerMovement.Instance.CurrentStaminaReserve < PlayerMovement.StaminaReserveMax)
                 {
                     PlayerMovement.Instance.SetStamina(PlayerMovement.StaminaReserveMax);
@@ -168,6 +220,35 @@ namespace NastyMod_v2.Core
                 if (Player.Local.CrimeData.CurrentPursuitLevel != EPursuitLevel.None)
                 {
                     Player.Local.CrimeData.SetPursuitLevel(EPursuitLevel.None);
+                }
+            }
+
+            if (PlayerNoClip)
+            {
+                if (Player.Local.CharacterController.enabled) Player.Local.CharacterController.enabled = false;
+
+                Vector3 move = Vector3.zero;
+
+                if (Input.GetKey(KeyCode.W)) move += Vector3.forward;
+                if (Input.GetKey(KeyCode.S)) move += Vector3.back;
+                if (Input.GetKey(KeyCode.A)) move += Vector3.left;
+                if (Input.GetKey(KeyCode.D)) move += Vector3.right;
+                if (Input.GetKey(KeyCode.Space)) move += Vector3.up;
+                if (Input.GetKey(KeyCode.LeftControl)) move += Vector3.down;
+
+                if (move != Vector3.zero)
+                {
+                    // Bewegung anhand der horizontalen Blickrichtung
+                    Vector3 camForward = Camera.main.transform.forward;
+                    Vector3 camRight = Camera.main.transform.right;
+                    Vector3 camUp = Vector3.up;
+
+                    Vector3 direction =
+                        move.z * Vector3.ProjectOnPlane(camForward, Vector3.up).normalized +
+                        move.x * Vector3.ProjectOnPlane(camRight, Vector3.up).normalized +
+                        move.y * camUp;
+
+                    Player.Local.transform.position += direction.normalized * 10f * Time.deltaTime;
                 }
             }
         }
@@ -186,22 +267,6 @@ namespace NastyMod_v2.Core
             Properties.Settings.Default.Save();
 
             HelperInstance.SendLoggerMsg($"Player - Infinite Health toggled! (now {PlayerInfiniteHealth})");
-        }
-
-        /**
-         * TogglePlayerInfiniteEnergy
-         * 
-         * Toggles the player infinite energy state.
-         * 
-         * @return void
-         */
-        public void TogglePlayerInfiniteEnergy()
-        {
-            PlayerInfiniteEnergy = !PlayerInfiniteEnergy;
-            Properties.Settings.Default.PlayerInfiniteEnergy = PlayerInfiniteEnergy;
-            Properties.Settings.Default.Save();
-
-            HelperInstance.SendLoggerMsg($"Player - Infinite Energy toggled! (now {PlayerInfiniteEnergy})");
         }
 
         /**
@@ -237,6 +302,25 @@ namespace NastyMod_v2.Core
         }
 
         /**
+         * TogglePlayerNoClip
+         * 
+         * Toggles the player no clip state.
+         * 
+         * @return void
+         */
+        public void TogglePlayerNoClip()
+        {
+            PlayerNoClip = !PlayerNoClip;
+
+            Properties.Settings.Default.PlayerNoClip = PlayerNoClip;
+            Properties.Settings.Default.Save();
+
+            Player.Local.CharacterController.enabled = !PlayerNoClip;
+
+            HelperInstance.SendLoggerMsg($"Player - No Clip toggled! (now {PlayerNoClip})");
+        }
+
+        /**
          * SetPlayerMoveSpeedMultiplier
          * 
          * Sets the player move speed multiplier.
@@ -263,16 +347,17 @@ namespace NastyMod_v2.Core
          * 
          * Resets the player move speed multiplier to default.
          * 
-         * @return void
+         * @return float Move speed multiplier
          */
-        public void ResetPlayerMoveSpeedMultiplier()
+        public float ResetPlayerMoveSpeedMultiplier()
         {
             PlayerMoveSpeedMultiplier = 1f;
 
-            Properties.Settings.Default.PlayerMoveSpeedMultiplier = PlayerMoveSpeedMultiplier;
-            Properties.Settings.Default.Save();
+            SetPlayerMoveSpeedMultiplier();
 
             HelperInstance.SendLoggerMsg($"Player - Move Speed Multiplier reset to {PlayerMoveSpeedMultiplier}");
+
+            return PlayerMoveSpeedMultiplier;
         }
 
         /**
@@ -302,16 +387,17 @@ namespace NastyMod_v2.Core
          * 
          * Resets the player crouch speed multiplier to default.
          * 
-         * @return void
+         * @return float Crouch speed multiplier
          */
-        public void ResetPlayerCrouchSpeedMultiplier()
+        public float ResetPlayerCrouchSpeedMultiplier()
         {
             PlayerCrouchSpeedMultiplier = 0.6f;
 
-            Properties.Settings.Default.PlayerCrouchSpeedMultiplier = PlayerCrouchSpeedMultiplier;
-            Properties.Settings.Default.Save();
+            SetPlayerCrouchSpeedMultiplier();
 
             HelperInstance.SendLoggerMsg($"Player - Crouch Speed Multiplier reset to {PlayerCrouchSpeedMultiplier}");
+
+            return PlayerCrouchSpeedMultiplier;
         }
 
         /**
@@ -341,16 +427,17 @@ namespace NastyMod_v2.Core
          * 
          * Resets the player jump multiplier to default.
          * 
-         * @return void
+         * @return float Player jump multiplier
          */
-        public void ResetPlayerJumpMultiplier()
+        public float ResetPlayerJumpMultiplier()
         {
             PlayerJumpMultiplier = 1f;
 
-            Properties.Settings.Default.PlayerJumpMultiplier = PlayerJumpMultiplier;
-            Properties.Settings.Default.Save();
+            SetPlayerJumpMultiplier();
 
             HelperInstance.SendLoggerMsg($"Player - Jump Multiplier reset to {PlayerJumpMultiplier}");
+
+            return PlayerJumpMultiplier;
         }
 
         /**
@@ -619,9 +706,9 @@ namespace NastyMod_v2.Core
          * 
          * Resets the ESP range to default.
          * 
-         * @return void
+         * @return float ESP range
          */
-        public void ResetWorldEspRange()
+        public float ResetWorldEspRange()
         {
             WorldEspRange = 100f;
 
@@ -629,6 +716,8 @@ namespace NastyMod_v2.Core
             Properties.Settings.Default.Save();
 
             HelperInstance.SendLoggerMsg($"World - ESP Range reset to {WorldEspRange}");
+
+            return WorldEspRange;
         }
 
         /**
@@ -654,9 +743,9 @@ namespace NastyMod_v2.Core
          * 
          * Resets the world time scale to default.
          * 
-         * @return void
+         * @return float World time scale
          */
-        public void ResetWorldTimeScale()
+        public float ResetWorldTimeScale()
         {
             var CommandArguments = new Il2CppSystem.Collections.Generic.List<string>();
             CommandArguments.Add("1");
@@ -665,6 +754,27 @@ namespace NastyMod_v2.Core
             Command.Execute(CommandArguments);
 
             HelperInstance.SendLoggerMsg($"World - Time Scale reset to 1");
+
+            return 1f;
+        }
+
+        /**
+         * ToggleWorldFreezeTime
+         * 
+         * Toggles the world freeze time state.
+         * 
+         * @return void
+         */
+        public void ToggleWorldFreezeTime()
+        {
+            WorldFreezeTime = !WorldFreezeTime;
+
+            Properties.Settings.Default.WorldFreezeTime = WorldFreezeTime;
+            Properties.Settings.Default.Save();
+
+            if (TimeManager.InstanceExists) TimeManager.Instance.TimeProgressionMultiplier = WorldFreezeTime ? 0f : 1f;
+
+            HelperInstance.SendLoggerMsg($"World - Freeze Time toggled! (now {WorldFreezeTime})");
         }
 
         /**
@@ -683,6 +793,38 @@ namespace NastyMod_v2.Core
             Command.Execute(CommandArguments);
 
             HelperInstance.SendLoggerMsg($"World - Time set to {WorldTime}");
+        }
+
+        /**
+         * WorldTimeForwardHour
+         * 
+         * Forwards the world time by one hour.
+         * 
+         * @return void
+         */
+        public void WorldTimeForwardHour()
+        {
+            if (!TimeManager.InstanceExists) return;
+
+            var CurrentTime = TimeManager.Instance.CurrentTime;
+            var NewTime = TimeManager.AddMinutesTo24HourTime(CurrentTime, 60);
+            TimeManager.Instance.SetTime(NewTime);
+        }
+
+        /**
+         * WorldTimeForwardHour
+         * 
+         * Forwards the world time by one hour.
+         * 
+         * @return void
+         */
+        public void WorldTimeBackwardHour()
+        {
+            if (!TimeManager.InstanceExists) return;
+
+            var CurrentTime = TimeManager.Instance.CurrentTime;
+            var NewTime = TimeManager.AddMinutesTo24HourTime(CurrentTime, -60);
+            TimeManager.Instance.SetTime(NewTime);
         }
         #endregion
 
@@ -984,6 +1126,99 @@ namespace NastyMod_v2.Core
 
         #region Misc mods
         /**
+         * CheckMiscMods
+         * 
+         * Checks all misc mods and applies them if necessary.
+         * 
+         * @return void
+         */
+        public void CheckMiscMods()
+        {
+            if (MiscInstantDeadDrop)
+            {
+                if (Time.time - LastDeadDropCheck > 5f)
+                {
+                    LastDeadDropCheck = Time.time;
+
+                    var Suppliers = GameObject.FindObjectsOfType<Supplier>();
+                    foreach (var Supplier in Suppliers)
+                    {
+                        if (Supplier != null && Supplier._minsUntilDeaddropReady_k__BackingField != -1)
+                        {
+                            Supplier._minsUntilDeaddropReady_k__BackingField = -1;
+                            HelperInstance.SendLoggerMsg($"Supplier {Supplier.fullName} - Dead drop ready");
+                        }
+                    }
+                }
+            }
+
+            if (MiscInstantLaundering)
+            {
+                if (Time.time - LastLaunderingCheck > 5f)
+                {
+                    LastLaunderingCheck = Time.time;
+                    var Businesses = BusinessManager.FindObjectsOfType<Business>();
+                    foreach (var Business in Businesses)
+                    {
+                        var LaunderingOperations = Business.LaunderingOperations;
+                        foreach (var LaunderingOperation in LaunderingOperations)
+                        {
+                            if (LaunderingOperation != null)
+                            {
+                                LaunderingOperation.minutesSinceStarted = LaunderingOperation.completionTime_Minutes;
+                                HelperInstance.SendLoggerMsg($"Business {Business.PropertyName} - Laundering operation completed");
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (MiscInstantMixing)
+            {
+                if (Time.time - LastMixingCheck > 5f)
+                {
+                    LastMixingCheck = Time.time;
+                    
+                    var MixingStations = GameObject.FindObjectsOfType<MixingStation>();
+                    foreach (var MixingStation in MixingStations)
+                    {
+                        if (MixingStation._CurrentMixOperation_k__BackingField != null)
+                        {
+                            MixingStation.TimeSkipped(240);
+                            HelperInstance.SendLoggerMsg($"Mixing Station - Mixing done");
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * CacheStackSizes
+         * 
+         * Caches the stack sizes for all items in the game.
+         * 
+         * @return void
+         */
+        public void CacheStackSizes()
+        {
+            ItemDefinition[] array = Resources.FindObjectsOfTypeAll<ItemDefinition>();
+            foreach (ItemDefinition itemDefinition in array)
+            {
+                if (itemDefinition != null && itemDefinition.StackLimit < 255)
+                {
+                    // Check if the item is already in the dictionary
+                    if (!MiscStackSizeDefaults.ContainsKey(itemDefinition.ID))
+                    {
+                        // Add the item to the dictionary with its stack size
+                        MiscStackSizeDefaults[itemDefinition.ID] = itemDefinition.StackLimit;
+                    }
+                }
+            }
+
+            HelperInstance.SendLoggerMsg($"Cached stack sizes for {MiscStackSizeDefaults.Count} items");
+        }
+
+        /**
         * SetMiscStackSize
         * 
         * Sets the stack size for items in the game.
@@ -995,6 +1230,19 @@ namespace NastyMod_v2.Core
             {
                 Properties.Settings.Default.MiscStackSize = MiscStackSize;
                 Properties.Settings.Default.Save();
+
+                if (MiscUseStackSize)
+                {
+                    // Set the stack size for all items
+                    ItemDefinition[] array = Resources.FindObjectsOfTypeAll<ItemDefinition>();
+                    foreach (ItemDefinition itemDefinition in array)
+                    {
+                        if (itemDefinition != null)
+                        {
+                            itemDefinition.StackLimit = MiscStackSize;
+                        }
+                    }
+                }
 
                 HelperInstance.SendLoggerMsg($"Misc - Stack Size set to {MiscStackSize}");
             }
@@ -1040,6 +1288,27 @@ namespace NastyMod_v2.Core
         public void ToggleMiscStackSize()
         {
             MiscUseStackSize = !MiscUseStackSize;
+
+            // Reset the stack size for all items
+            ItemDefinition[] array = Resources.FindObjectsOfTypeAll<ItemDefinition>();
+            foreach (ItemDefinition _ItemDefinition in array)
+            {
+                if (_ItemDefinition != null)
+                {
+                    if (MiscUseStackSize)
+                    {
+                        // Set the stack size to the default value
+                        _ItemDefinition.StackLimit = MiscStackSize;
+                    }
+                    else
+                    {
+                        // Reset the stack size to the original value
+                        if (MiscStackSizeDefaults.ContainsKey(_ItemDefinition.ID))
+                            _ItemDefinition.StackLimit = MiscStackSizeDefaults[_ItemDefinition.ID];
+                    }
+                }
+            }
+
             HelperInstance.SendLoggerMsg($"Misc - Stack Size toggled! (now {MiscUseStackSize})");
         }
 
@@ -1087,7 +1356,7 @@ namespace NastyMod_v2.Core
          * @return float The default deal success chance.
          */
         public float GetDefaultMiscDealSuccessChance() {
-            return .75f;
+            return 75f;
         }
 
         /**
@@ -1100,7 +1369,154 @@ namespace NastyMod_v2.Core
         public void ToggleMiscDealSuccessChance()
         {
             MiscUseDealSuccessChance = !MiscUseDealSuccessChance;
+
             HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance toggled! (now {MiscUseDealSuccessChance})");
+        }
+
+        /**
+         * MiscDealSuccessChancePatch
+         * 
+         * HarmonyPatch - Patches the deal success chance for items in the game.
+         * 
+         * @return void
+         */
+        [HarmonyPatch]
+        public class MiscDealSuccessChancePatch
+        {
+            [HarmonyPatch(typeof(Customer), "GetOfferSuccessChance")]
+            [HarmonyPostfix]
+            public static void Postfix(ref float __result, List<ItemInstance> items, float askingPrice)
+            {
+                if (Mod.Instance != null && Mod.Instance.MiscUseDealSuccessChance)
+                {
+                    __result = Mod.Instance.MiscDealSuccessChance / 100;
+                }
+            }
+        }
+
+        /**
+         * SetMiscPlantGrowSpeed
+         * 
+         * Sets the deal success chance for items in the game.
+         *
+         * @return void
+         */
+        public void SetMiscPlantGrowSpeed()
+        {
+            if (Properties.Settings.Default.MiscPlantGrowSpeedMultiplier != MiscPlantGrowSpeedMultiplier)
+            {
+                Properties.Settings.Default.MiscPlantGrowSpeedMultiplier = MiscPlantGrowSpeedMultiplier;
+                Properties.Settings.Default.Save();
+
+                HelperInstance.SendLoggerMsg($"Misc - Plant Grow Speed set to {MiscPlantGrowSpeedMultiplier}");
+            }
+        }
+
+        /**
+         * ResetMiscPlantGrowSpeed
+         * 
+         * Resets the deal success chance for items in the game to default.
+         *
+         * @return float
+         */
+        public float ResetMiscPlantGrowSpeed()
+        {
+            var Value = 1f;
+
+            if (Properties.Settings.Default.MiscPlantGrowSpeedMultiplier != Value)
+            {
+                Properties.Settings.Default.MiscPlantGrowSpeedMultiplier = Value;
+                Properties.Settings.Default.Save();
+
+                HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance reset to {MiscPlantGrowSpeedMultiplier}");
+            }
+
+            return Value;
+        }
+
+        /**
+         * ToggleMiscPlantGrowSpeed
+         * 
+         * Toggles the deal success chance for items in the game.
+         * 
+         * @return void
+         */
+        public void ToggleMiscPlantGrowSpeed()
+        {
+            MiscUsePlantGrowSpeedMultiplier = !MiscUsePlantGrowSpeedMultiplier;
+
+            HelperInstance.SendLoggerMsg($"Misc - Growth speed toggled! (now {MiscUsePlantGrowSpeedMultiplier})");
+        }
+
+        /**
+         * MiscGrowthSpeedPatch
+         * 
+         * HarmonyPatch - Patches the growth speed for items in the game.
+         * 
+         * @return void
+         */
+        [HarmonyPatch(typeof(Pot), "GetAdditiveGrowthMultiplier")]
+        public class PlantGetAdditiveGrowthMultiplierPatch
+        {
+            [HarmonyPostfix]
+            public static void Postfix(ref float __result)
+            {
+                if (Mod.Instance != null && Mod.Instance.MiscUsePlantGrowSpeedMultiplier)
+                {
+                    __result *= Mod.Instance.MiscPlantGrowSpeedMultiplier;
+                }
+            }
+        }
+
+        /**
+         * ToggleMiscInstantDeadDrop
+         * 
+         * Toggles the instant dead drop feature.
+         * 
+         * @return void
+         */
+        public void ToggleMiscInstantDeadDrop()
+        {
+            MiscInstantDeadDrop = !MiscInstantDeadDrop;
+
+            Properties.Settings.Default.MiscInstantDeadDrop = MiscInstantDeadDrop;
+            Properties.Settings.Default.Save();
+
+            HelperInstance.SendLoggerMsg($"Misc - Instant Dead Drop toggled! (now {MiscInstantDeadDrop})");
+        }
+
+        /**
+         * ToggleMiscInstantLaundering
+         * 
+         * Toggles the instant laundering feature.
+         * 
+         * @return void
+         */
+        public void ToggleMiscInstantLaundering()
+        {
+            MiscInstantLaundering = !MiscInstantLaundering;
+
+            Properties.Settings.Default.MiscInstantLaundering = MiscInstantLaundering;
+            Properties.Settings.Default.Save();
+
+            HelperInstance.SendLoggerMsg($"Misc - Instant Laundering toggled! (now {MiscInstantLaundering})");
+        }
+
+        /**
+         * ToggleMiscInstantMixing
+         * 
+         * Toggles the instant mixing feature.
+         * 
+         * @return void
+         */
+        public void ToggleMiscInstantMixing()
+        {
+            MiscInstantMixing = !MiscInstantMixing;
+
+            Properties.Settings.Default.MiscInstantMixing = MiscInstantMixing;
+            Properties.Settings.Default.Save();
+
+            HelperInstance.SendLoggerMsg($"Misc - Instant Mixing toggled! (now {MiscInstantMixing})");
         }
 
         /**
@@ -1288,57 +1704,155 @@ namespace NastyMod_v2.Core
                 // Create a dictionary to store teleport items
                 var _TeleportLocations = new Dictionary<string, Dictionary<string, Vector3>>();
 
-                // Get all properties
+                // Get all properties and businesses
                 var Properties = PropertyManager.FindObjectsOfType<Property>();
                 foreach (var Property in Properties)
                 {
                     // Get the property name and ID
                     string PropertyName = Property.propertyName;
                     string PropertyId = Property.propertyCode;
+                    string PropertySaveFileName = Property.SaveFileName;
                     // Get the property position
                     Vector3 PropertyPosition = Property.transform.position;
                     PropertyPosition.y += (PlayerHeight / 2);
-                    // Add the property to the teleport dictionary
-                    if (!_TeleportLocations.ContainsKey("Properties"))
+
+                    if (PropertySaveFileName == "Property")
                     {
-                        _TeleportLocations["Properties"] = new Dictionary<string, Vector3>();
+                        // Add the property to the teleport dictionary
+                        if (!_TeleportLocations.ContainsKey("Properties"))
+                        {
+                            _TeleportLocations["Properties"] = new Dictionary<string, Vector3>();
+                        }
+                        _TeleportLocations["Properties"][PropertyName] = PropertyPosition;
                     }
-                    _TeleportLocations["Properties"][PropertyName] = PropertyPosition;
+                    else if (PropertySaveFileName == "Business")
+                    {
+                        // Add the business to the teleport dictionary
+                        if (!_TeleportLocations.ContainsKey("Businesses"))
+                        {
+                            _TeleportLocations["Businesses"] = new Dictionary<string, Vector3>();
+                        }
+                        _TeleportLocations["Businesses"][PropertyName] = PropertyPosition;
+                    }
                 }
 
-                // Get all NPCs
+                // Get all npcs and their stores
                 var Npcs = NPCManager.FindObjectsOfType<NPC>();
                 foreach (var Npc in Npcs)
                 {
-                    // Get the NPC name and ID
+                    // Get the npc name and ID
                     string NpcName = Npc.FirstName;
                     string NpcId = Npc.ID;
-                    // Get the NPC position
+                    // Get the npc position
                     Vector3 NpcPosition = Npc.transform.position;
                     NpcPosition.y += (PlayerHeight / 2);
-                    // Add the NPC to the teleport dictionary
-                    if (!_TeleportLocations.ContainsKey("NPCs"))
+
+                    // Check if the npc has a ShopInterface field
+                    var ShopInterface = Npc.GetComponent<ShopInterface>();
+                    if (ShopInterface != null)
                     {
-                        _TeleportLocations["NPCs"] = new Dictionary<string, Vector3>();
+                        if (!_TeleportLocations.ContainsKey("Shops"))
+                        {
+                            _TeleportLocations["Shops"] = new Dictionary<string, Vector3>();
+                        }
+                        _TeleportLocations["Shops"][ShopInterface.ShopName] = NpcPosition;
                     }
-                    _TeleportLocations["NPCs"][NpcName] = NpcPosition;
+                    else
+                    {
+                        // Add the npc to the teleport dictionary
+                        if (!_TeleportLocations.ContainsKey("NPCs"))
+                        {
+                            _TeleportLocations["NPCs"] = new Dictionary<string, Vector3>();
+                        }
+                        _TeleportLocations["NPCs"][NpcName] = NpcPosition;
+                    }
+                }
+
+                // Get all supplier stashes
+                var SupplierStashes = StorageManager.FindObjectsOfType<SupplierStash>();
+                foreach (var Stash in SupplierStashes)
+                {
+                    // Get the stash name
+                    string StashName = Stash.name;
+                    // Get the stash position
+                    Vector3 StashPosition = Stash.transform.position;
+                    StashPosition.y += (PlayerHeight / 2);
+                    // Add the stash to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Supplier Stashes"))
+                    {
+                        _TeleportLocations["Supplier Stashes"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Supplier Stashes"][StashName] = StashPosition;
+                }
+
+                // Get all supplier locations
+                var SupplierLocations = StorageManager.FindObjectsOfType<SupplierLocation>();
+                foreach (var Location in SupplierLocations)
+                {
+                    // Get the location name
+                    string LocationName = Location.name;
+                    // Get the location position
+                    Vector3 LocationPosition = Location.transform.position;
+                    LocationPosition.y += (PlayerHeight / 2);
+                    // Add the location to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Supplier Locations"))
+                    {
+                        _TeleportLocations["Supplier Locations"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Supplier Locations"][LocationName] = LocationPosition;
+                }
+
+                // Get all delivery locations
+                var DeliveryLocations = StorageManager.FindObjectsOfType<DeliveryLocation>();
+                foreach (var Location in DeliveryLocations)
+                {
+                    // Get the location name
+                    string LocationName = Location.name;
+                    // Get the location position
+                    Vector3 LocationPosition = Location.transform.position;
+                    LocationPosition.y += (PlayerHeight / 2);
+                    // Add the location to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Delivery Locations"))
+                    {
+                        _TeleportLocations["Delivery Locations"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Delivery Locations"][LocationName] = LocationPosition;
+                }
+
+                // Get all dead drops
+                var DeadDrops = StorageManager.FindObjectsOfType<DeadDrop>();
+                foreach (var Drop in DeadDrops)
+                {
+                    // Get the drop name
+                    string DropName = Drop.name;
+                    // Get the drop position
+                    Vector3 DropPosition = Drop.transform.position;
+                    DropPosition.y += (PlayerHeight / 2);
+                    // Add the drop to the teleport dictionary
+                    if (!_TeleportLocations.ContainsKey("Dead Drops"))
+                    {
+                        _TeleportLocations["Dead Drops"] = new Dictionary<string, Vector3>();
+                    }
+                    _TeleportLocations["Dead Drops"][DropName] = DropPosition;
                 }
 
                 // Get all players
                 var Players = Player.PlayerList;
-                foreach (var Player in Players)
-                {
-                    // Get the player name
-                    string PlayerName = Player.PlayerName;
-                    // Get the player position
-                    Vector3 PlayerPosition = Player.transform.position;
-                    PlayerPosition.y += (PlayerHeight / 2);
-                    // Add the player to the teleport dictionary
-                    if (!_TeleportLocations.ContainsKey("Players"))
+                if (Players.Count > 1) { 
+                    foreach (var Player in Players)
                     {
-                        _TeleportLocations["Players"] = new Dictionary<string, Vector3>();
+                        // Get the player name
+                        string PlayerName = Player.PlayerName;
+                        // Get the player position
+                        Vector3 PlayerPosition = Player.transform.position;
+                        PlayerPosition.y += (PlayerHeight / 2);
+                        // Add the player to the teleport dictionary
+                        if (!_TeleportLocations.ContainsKey("Players"))
+                        {
+                            _TeleportLocations["Players"] = new Dictionary<string, Vector3>();
+                        }
+                        _TeleportLocations["Players"][PlayerName] = PlayerPosition;
                     }
-                    _TeleportLocations["Players"][PlayerName] = PlayerPosition;
                 }
 
                 // Add the teleports to the main dictionary
@@ -1442,6 +1956,484 @@ namespace NastyMod_v2.Core
         }
         #endregion
 
+        #region Employees mods
+        /*
+         * GetEmployeesCategories
+         * 
+         * Returns a list of all employees.
+         * 
+         * @return List<string> A list of all employees.
+         */
+        public List<string> GetEmployeesCategories()
+        {
+            return Employees.Keys.ToList();
+        }
+
+        /**
+         * GetEmployeesCategoryItems
+         * 
+         * Returns a list of all employees in a given category.
+         * 
+         * @param Category The category to get employees from.
+         */
+        public Dictionary<string, List<Employee>> GetEmployeesCategoryItems(string category)
+        {
+            if (Employees.ContainsKey(category))
+            {
+                return Employees[category];
+            }
+            else
+            {
+                HelperInstance.SendLoggerMsg($"Employees for property '{category}' not found in Employees.");
+                return new Dictionary<string, List<Employee>>();
+            }
+        }
+
+        /**
+         * FilterEmployeesItems
+         * 
+         * Filters the employees items based on a given filter string.
+         * 
+         * @param Filter Filter string to use.
+         * @param Items Items to filter from.
+         * @return Dictionary<string, string> Dictionary of filtered items.
+         */
+        public Dictionary<string, List<Employee>> FilterEmployeesItems(string Filter, Dictionary<string, List<Employee>> Items)
+        {
+            // Create a new dictionary for the filtered items
+            Dictionary<string, List<Employee>> FilteredItems = new Dictionary<string, List<Employee>>();
+
+            // Filter the items based on the filter string
+            foreach (var Item in Items)
+            {
+                foreach (var TmpEmployee in Item.Value)
+                {
+                    var FilterMatch = TmpEmployee.fullName.ToLower().Trim().Contains(Filter.ToLower().Trim()) || TmpEmployee.EmployeeType.ToString().ToLower().Trim().Contains(Filter.ToLower().Trim());
+                    // MelonLogger.Msg($"Checking if item \"{Item.Value.ToLower()}\" contains \"{Filter.ToLower()}\"");
+                    if (FilterMatch)
+                    {
+                        if (!FilteredItems.ContainsKey(Item.Key))
+                        {
+                            FilteredItems[Item.Key] = new List<Employee>();
+                        }
+                        FilteredItems[Item.Key].Add(TmpEmployee);
+                    }
+                }
+            }
+
+            return FilteredItems;
+        }
+
+        /**
+         * GetEmployeeSpeeds
+         * 
+         * Gets the speed of a given employee.
+         * 
+         * @param Employee The employee to get the speed of.
+         * @return Dictionary<string, float> A dictionary of the employee's speed.
+         */
+        public Dictionary<string, float> GetEmployeeSpeeds(Il2CppSystem.Guid Employee)
+        {
+            if (EmployeesSpeed.ContainsKey(Employee))
+            {
+                return EmployeesSpeed[Employee];
+            }
+
+            return new Dictionary<string, float>();
+        }
+
+        /**
+         * SetEmployeeSpeed
+         * 
+         * Sets the speed of a given employee.
+         * 
+         * @param Employee The employee to set the speed of.
+         * @param Key The speed identifier value
+         * @param Value The value to set the speed to.
+         * @return void
+         */
+        public void SetEmployeeSpeed(Il2CppSystem.Guid Employee, string EmployeeType, string Key, float Value)
+        {
+            if (EmployeesSpeed.ContainsKey(Employee))
+            {
+                HelperInstance.SendLoggerMsg($"Trying to find out which Type - '{EmployeeType}'");
+
+                EmployeesSpeed[Employee][Key] = Value;
+                switch (EmployeeType)
+                {
+                    case "Botanist":
+                        HelperInstance.SendLoggerMsg($"Switch case botanist matched for '{EmployeeType}'");
+                        SetBotanistSpeed(Employee, BotanistEmployees[Employee], Key, Value);
+                        HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
+                        break;
+                    case "Handler":
+                        HelperInstance.SendLoggerMsg($"Switch case handler matched for '{EmployeeType}'");
+                        SetPackagerSpeed(Employee, PackagerEmployees[Employee], Key, Value);
+                        HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
+                        break;
+                    default:
+                        break;
+                }
+            } 
+            else
+            {
+                HelperInstance.SendLoggerMsg($"Employee '{Employee}' not found in EmployeesSpeed.");
+            }
+        }
+
+        /**
+         * ResetEmployeeSpeed
+         * 
+         * Resets the speed of a given employee.
+         * 
+         * @param Employee The employee to reset the speed of.
+         * @param Key The speed identifier value
+         * @return float
+         */
+        public float ResetEmployeeSpeed(Il2CppSystem.Guid Employee, string EmployeeType, string Key)
+        {
+            float returnValue = 0f;
+            if (EmployeesSpeed.ContainsKey(Employee))
+            {
+                EmployeesSpeed[Employee][Key] = EmployeesDefaultSpeed[Key];
+                switch (EmployeeType)
+                {
+                    case "Botanist":
+                        Botanist BotanistEmployee = BotanistEmployees[Employee];
+                        returnValue = ResetBotanistSpeed(Employee, BotanistEmployee, Key);
+                        break;
+                    case "Handler":
+                        Packager PackagerEmployee = PackagerEmployees[Employee];
+                        returnValue = ResetPackagerSpeed(Employee, PackagerEmployee, Key);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            HelperInstance.SendLoggerMsg($"Reset {Key} for employee '{Employee}' to {returnValue}");
+            return returnValue;
+        }
+
+        /**
+         * SetBotanistSpeed
+         * 
+         * Sets a botanist's speed value for a given key.
+         * 
+         * @param Botanist The botanist to set the speed of.
+         * @param Key The speed identifier value
+         * @param Value The value to set the speed to.
+         * @return void
+         */
+        public void SetBotanistSpeed(Il2CppSystem.Guid Employee, Botanist Botanist, string Key, float Value)
+        {
+            switch (Key)
+            {
+                case "Speed":
+                    Botanist.Movement.MoveSpeedMultiplier = Value;
+                    EmployeesSpeed[Employee]["Speed"] = Botanist.Movement.MoveSpeedMultiplier;
+                    break;
+                case "Soil Pour Time":
+                    Botanist.SOIL_POUR_TIME = Value;
+                    EmployeesSpeed[Employee]["Soil Pour Time"] = Botanist.SOIL_POUR_TIME;
+                    break;
+                case "Water Pour Time":
+                    Botanist.WATER_POUR_TIME = Value;
+                    EmployeesSpeed[Employee]["Water Pour Time"] = Botanist.WATER_POUR_TIME;
+                    break;
+                case "Additive Pour Time":
+                    Botanist.ADDITIVE_POUR_TIME = Value;
+                    EmployeesSpeed[Employee]["Additive Pour Time"] = Botanist.ADDITIVE_POUR_TIME;
+                    break;
+                case "Seed Sow Time":
+                    Botanist.SEED_SOW_TIME = Value;
+                    EmployeesSpeed[Employee]["Seed Sow Time"] = Botanist.SEED_SOW_TIME;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /**
+         * ResetBotanistSpeed
+         * 
+         * Resets a botanist's speed value for a given key.
+         * 
+         * @param Botanist The botanist to reset the speed of.
+         * @param Key The speed identifier value
+         * @return float
+         */
+        public float ResetBotanistSpeed(Il2CppSystem.Guid Employee, Botanist Botanist, string Key)
+        {
+            float returnValue = 0f;
+
+            switch (Key)
+            {
+                case "Speed":
+                    Botanist.Movement.MoveSpeedMultiplier = Botanist.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[Employee]["Speed"] = Botanist.Movement.MoveSpeedMultiplier;
+                    returnValue = Botanist.Movement.MoveSpeedMultiplier;
+                    break;
+                case "Soil Pour Time":
+                    Botanist.SOIL_POUR_TIME = Botanist.SOIL_POUR_TIME;
+                    EmployeesSpeed[Employee]["Soil Pour Time"] = Botanist.SOIL_POUR_TIME;
+                    returnValue = Botanist.SOIL_POUR_TIME;
+                    break;
+                case "Water Pour Time":
+                    Botanist.WATER_POUR_TIME = Botanist.WATER_POUR_TIME;
+                    EmployeesSpeed[Employee]["Water Pour Time"] = Botanist.WATER_POUR_TIME;
+                    returnValue = Botanist.WATER_POUR_TIME;
+                    break;
+                case "Additive Pour Time":
+                    Botanist.ADDITIVE_POUR_TIME = Botanist.ADDITIVE_POUR_TIME;
+                    EmployeesSpeed[Employee]["Additive Pour Time"] = Botanist.ADDITIVE_POUR_TIME;
+                    returnValue = Botanist.ADDITIVE_POUR_TIME;
+                    break;
+                case "Seed Sow Time":
+                    Botanist.SEED_SOW_TIME = Botanist.SEED_SOW_TIME;
+                    EmployeesSpeed[Employee]["Seed Sow Time"] = Botanist.SEED_SOW_TIME;
+                    returnValue = Botanist.SEED_SOW_TIME;
+                    break;
+                default:
+                    break;
+            }
+
+            return returnValue;
+        }
+
+        /**
+         * SetPackagerSpeed
+         * 
+         * Sets a packager's speed value for a given key.
+         * 
+         * @param Packager The packager to set the speed of.
+         * @param Key The speed identifier value
+         * @param Value The value to set the speed to.
+         * @return void
+         */
+        public void SetPackagerSpeed(Il2CppSystem.Guid Employee, Packager Packager, string Key, float Value)
+        {
+            switch (Key)
+            {
+                case "Speed":
+                    Packager.Movement.MoveSpeedMultiplier = Value;
+                    EmployeesSpeed[Employee]["Speed"] = Packager.Movement.MoveSpeedMultiplier;
+                    break;
+                case "Packaging Speed":
+                    Packager.PackagingSpeedMultiplier = Value;
+                    EmployeesSpeed[Employee]["Packaging Speed"] = Packager.PackagingSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /**
+         * ResetPackagerSpeed
+         * 
+         * Resets a packager's speed value for a given key.
+         * 
+         * @param Packager The packager to reset the speed of.
+         * @param Key The speed identifier value
+         * @return float
+         */
+        public float ResetPackagerSpeed(Il2CppSystem.Guid Employee, Packager Packager, string Key)
+        {
+            float returnValue = 0f;
+
+            switch (Key)
+            {
+                case "Speed":
+                    Packager.Movement.MoveSpeedMultiplier = Packager.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[Employee]["Speed"] = Packager.Movement.MoveSpeedMultiplier;
+                    returnValue = Packager.Movement.MoveSpeedMultiplier;
+                    break;
+                case "Packaging Speed":
+                    Packager.PackagingSpeedMultiplier = Packager.PackagingSpeedMultiplier;
+                    EmployeesSpeed[Employee]["Packaging Speed"] = Packager.PackagingSpeedMultiplier;
+                    returnValue = Packager.PackagingSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+
+            return returnValue;
+        }
+
+        /**
+         * FireEmployee
+         * 
+         * Fires a given employee.
+         * 
+         * @param EmployeeType The type of employee to fire.
+         * @param Employee The employee to fire.
+         * @return void
+         */
+        public void FireEmployee(string Property, string EmployeeType, Il2CppSystem.Guid Employee)
+        {
+            // Check if the property exists
+            if (!Employees.ContainsKey(Property)) return;
+
+            // Check if the employee type exists
+            if (!Employees[Property].ContainsKey(EmployeeType)) return;
+
+            // Find the employee in the list
+            foreach (var EmployeeList in Employees[Property][EmployeeType])
+            {
+                if (EmployeeList.GUID == Employee)
+                {
+                    // Fire the employee
+                    EmployeeList.SendFire();
+                    HelperInstance.SendLoggerMsg($"Fired {EmployeeList.FirstName} ({Employee}) from {Property}");
+                    break;
+                }
+            }
+        }
+        #endregion
+
+        /**
+         * CheckEmployees
+         * 
+         * Gets all employees for each property
+         * 
+         * @return void
+         */
+        public IEnumerator CheckEmployees()
+        {
+            // Wait for 5 seconds before checking employees
+            yield return new WaitForSeconds(5f);
+
+            // Clear current employees
+            Employees.Clear();
+
+            // Get all properties
+            var Properties = PropertyManager.FindObjectsOfType<Property>();
+            foreach (var Property in Properties) {
+                // Get the property name
+                string PropertyName = Property.propertyName;
+
+                // Get the property employees
+                var EmployeesList = Property.Employees;
+
+                // Add the property to the employee dictionary
+                if (!Employees.ContainsKey(PropertyName))
+                {
+                    Employees[PropertyName] = new Dictionary<string, List<Employee>>();
+                }
+
+                if (EmployeesList == null || EmployeesList.Count == 0) continue;
+
+                foreach (var Employee in EmployeesList)
+                {
+                    // Get the employee guid, name and type;
+                    var EmployeeGuid = Employee.GUID;
+                    var EmployeeName = Employee.FirstName;
+                    var EmployeeType = Employee.Type.ToString();
+
+                    // Add type specific employees
+                    switch (EmployeeType)
+                    {
+                        case "Botanist":
+                            var BotanistEmployee = NPCManager.FindObjectsOfType<Botanist>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                            HelperInstance.SendLoggerMsg($"Found botanist employee: {EmployeeName} ({EmployeeGuid})");
+                            BotanistEmployees[EmployeeGuid] = BotanistEmployee;
+                            break;
+                        case "Handler":
+                            var PackagerEmployee = NPCManager.FindObjectsOfType<Packager>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                            HelperInstance.SendLoggerMsg($"Found packager employee: {EmployeeName} ({EmployeeGuid})");
+                            PackagerEmployees[EmployeeGuid] = PackagerEmployee;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // Add the employee type to the property
+                    if (!Employees[PropertyName].ContainsKey(EmployeeType))
+                    {
+                        Employees[PropertyName][EmployeeType] = new List<Employee>();
+                    }
+
+                    // Add the employee to the property
+                    if (!Employees[PropertyName][EmployeeType].Contains(Employee))
+                    {
+                        Employees[PropertyName][EmployeeType].Add(Employee);
+                    }
+                }
+            }
+
+            yield return CheckEmployees();
+        }
+
+        /**
+         * CheckEmployeeSpeeds
+         * 
+         * Gets all employee speeds for all properties
+         *
+         * @return void
+         */
+        public IEnumerator CheckEmployeeSpeeds()
+        {
+            yield return new WaitForSeconds(5f);
+
+            // Get all botanist employees
+            var BotanistEmployees = Resources.FindObjectsOfTypeAll<Botanist>();
+            foreach (Botanist Botanist in BotanistEmployees)
+            {
+                // Filter invalid botanists
+                if (Botanist == null || Botanist.gameObject == null || Botanist.fullName == "Botanist") continue;
+
+                var BotanistGuid = Botanist.GUID;
+
+                if (!EmployeesSpeed.ContainsKey(BotanistGuid))
+                {
+                    EmployeesSpeed[BotanistGuid] = new Dictionary<string, float>();
+                }
+                EmployeesSpeed[BotanistGuid]["Speed"] = Botanist.Movement.MoveSpeedMultiplier;
+                EmployeesSpeed[BotanistGuid]["Soil Pour Time"] = Botanist.SOIL_POUR_TIME;
+                EmployeesSpeed[BotanistGuid]["Water Pour Time"] = Botanist.WATER_POUR_TIME;
+                EmployeesSpeed[BotanistGuid]["Additive Pour Time"] = Botanist.ADDITIVE_POUR_TIME;
+                EmployeesSpeed[BotanistGuid]["Seed Sow Time"] = Botanist.SEED_SOW_TIME;
+                EmployeesSpeed[BotanistGuid]["Harvest Time"] = Botanist.HARVEST_TIME;
+            }
+
+            // Get all packager employees
+            var PackagerEmployees = Resources.FindObjectsOfTypeAll<Packager>();
+            foreach (Packager Packager in PackagerEmployees)
+            {
+                // Filter invalid packagers
+                if (Packager == null || Packager.gameObject == null || Packager.fullName == "Packager") continue;
+
+                var PackagerGuid = Packager.GUID;
+
+                if (!EmployeesSpeed.ContainsKey(PackagerGuid))
+                {
+                    EmployeesSpeed[PackagerGuid] = new Dictionary<string, float>();
+                }
+                EmployeesSpeed[PackagerGuid]["Speed"] = Packager.Movement.MoveSpeedMultiplier;
+                EmployeesSpeed[PackagerGuid]["Packaging Speed"] = Packager.PackagingSpeedMultiplier;
+            }
+
+            yield break;
+        }
+
+        /**
+         * CacheDelayed
+         * 
+         * Calls the CacheGameItems as well as CacheTeleports methods.
+         * 
+         * @return void
+         */
+        public IEnumerator CacheDelayed()
+        {
+            yield return new WaitForSeconds(3f);
+
+            CacheGameItems();
+            CacheTeleports();
+            CacheStackSizes();
+
+            yield break;
+        }
+
         /**
          * CheckMods
          * 
@@ -1454,6 +2446,7 @@ namespace NastyMod_v2.Core
             try
             {
                 CheckPlayerMods();
+                CheckMiscMods();
             }
             catch (Exception ex)
             {

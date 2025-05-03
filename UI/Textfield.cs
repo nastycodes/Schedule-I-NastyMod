@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MelonLoader;
+using UnityEngine;
 
 namespace NastyMod_v2.UI
 {
@@ -8,7 +9,7 @@ namespace NastyMod_v2.UI
      * A custom text field class for handling user input.
      * 
      * Author: nastycodes, darkness
-     * Version: 1.0.0
+     * Version: 1.0.1
      */
     public class Textfield
     {
@@ -53,10 +54,13 @@ namespace NastyMod_v2.UI
             _Value = initialValue ?? "";
             Style = style ?? GUI.skin.textField;
 
+            Style.padding = new RectOffset(6, 6, 4, 0);
+
             DefaultStyle = new GUIStyle(GUI.skin.textField)
             {
                 fontSize = 14,
                 fixedHeight = 24,
+                padding = new RectOffset(6, 6, 4, 0),
             };
 
             var TextfieldBgDarkTexture = new Texture2D(1, 1);
@@ -72,9 +76,9 @@ namespace NastyMod_v2.UI
             DefaultStyle.hover.background = TextfieldBgGrayTexture;
             DefaultStyle.active.background = TextfieldBgGrayTexture;
             DefaultStyle.onNormal.background = TextfieldBgDarkTexture;
+            DefaultStyle.onFocused.background = TextfieldBgGrayTexture;
             DefaultStyle.onHover.background = TextfieldBgGrayTexture;
             DefaultStyle.onActive.background = TextfieldBgGrayTexture;
-            DefaultStyle.onFocused.background = TextfieldBgGrayTexture;
 
             ID = NextID++;
         }
@@ -172,14 +176,11 @@ namespace NastyMod_v2.UI
                                 CurrentField = null;
                                 current.Use();
                                 break;
-                        }
-                    }
-                    break;
 
-                case EventType.Layout:
-                    if (IsFocused && CurrentField == this)
-                    {
-                        HandleTextInput(current);
+                            default:
+                                HandleTextInput(current);
+                                break;
+                        }
                     }
                     break;
             }
@@ -209,7 +210,7 @@ namespace NastyMod_v2.UI
 
             // Draw the text with cursor
             string displayText = _Value;
-            if (IsFocused && (Time.time % 1f) < 0.5f)
+            if (IsFocused && (Time.unscaledTime % 1f) < 0.5f)
             {
                 displayText += "|"; // Blinking cursor
             }
@@ -233,14 +234,13 @@ namespace NastyMod_v2.UI
             if (current.character == '\0' || (!char.IsLetterOrDigit(current.character) && !char.IsWhiteSpace(current.character))) return;
 
             // Check for input cooldown and character
-            if (((Time.time - LastInputTime) <= InputCooldown) && LastInputCharacter == current.character.ToString()) return;
+            if (((Time.unscaledTime - LastInputTime) <= InputCooldown) && LastInputCharacter == current.character.ToString()) return;
 
             // Add the character to the value
             _Value += current.character;
-            _Value = _Value.Trim();
 
             // Update the last input time and character
-            LastInputTime = Time.time;
+            LastInputTime = Time.unscaledTime;
             LastInputCharacter = current.character.ToString();
 
             // Consume the event
@@ -259,6 +259,24 @@ namespace NastyMod_v2.UI
         {
             Rect rect = GUILayoutUtility.GetRect(40, 20, options ?? new GUILayoutOption[0]);
             return Draw(rect);
+        }
+
+        /**
+         * Clear
+         * 
+         * Clears the text field value.
+         * 
+         * @return void
+         */
+        public void Clear()
+        {
+            _Value = "";
+            IsFocused = false;
+            GUIUtility.keyboardControl = 0;
+            if (CurrentField == this)
+            {
+                CurrentField = null;
+            }
         }
     }
 }
