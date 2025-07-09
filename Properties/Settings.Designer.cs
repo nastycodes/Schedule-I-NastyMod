@@ -370,5 +370,41 @@ namespace NastyMod_v2.Properties {
                 this["MiscInstantMixing"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1100")]
+        public int MenuWidth {
+            get {
+                return ((int)(this["MenuWidth"]));
+            }
+            set {
+                this["MenuWidth"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("560")]
+        public int MenuHeight {
+            get {
+                return ((int)(this["MenuHeight"]));
+            }
+            set {
+                this["MenuHeight"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1072")]
+        public int MenuTabWidth {
+            get {
+                return ((int)(this["MenuTabWidth"]));
+            }
+            set {
+                this["MenuTabWidth"] = value;
+            }
+        }
     }
 }

@@ -20,6 +20,8 @@ using Il2CppScheduleOne.Economy;
 using Il2CppScheduleOne.Storage;
 using Il2CppScheduleOne.GameTime;
 using Il2CppScheduleOne.ObjectScripts;
+using Il2CppFishNet.Object.Delegating;
+using UnityEngine.UIElements;
 
 namespace NastyMod_v2.Core
 {
@@ -90,6 +92,7 @@ namespace NastyMod_v2.Core
         public int MiscTrashGrabberCapacity = Properties.Settings.Default.MiscTrashGrabberCapacity;
         public bool MiscUsePlantGrowSpeedMultiplier = Properties.Settings.Default.MiscUsePlantGrowSpeedMultiplier;
         public float MiscPlantGrowSpeedMultiplier = Properties.Settings.Default.MiscPlantGrowSpeedMultiplier;
+        public Dictionary<Il2CppSystem.Guid, Pot> MiscPots = new Dictionary<Il2CppSystem.Guid, Pot>();
         public bool MiscInstantDeadDrop = Properties.Settings.Default.MiscInstantDeadDrop;
         public float LastDeadDropCheck = 0f;
         public bool MiscInstantLaundering = Properties.Settings.Default.MiscInstantLaundering;
@@ -98,9 +101,12 @@ namespace NastyMod_v2.Core
         public float LastMixingCheck = 0f;
 
         // Employees variables
+        public Dictionary<string, string> EmployeesPropertyCodes = new Dictionary<string, string>();
         public Dictionary<string, Dictionary<string, List<Employee>>> Employees = new Dictionary<string, Dictionary<string, List<Employee>>>();
         public Dictionary<Il2CppSystem.Guid, Botanist> BotanistEmployees = new Dictionary<Il2CppSystem.Guid, Botanist>();
+        public Dictionary<Il2CppSystem.Guid, Cleaner> CleanerEmployees = new Dictionary<Il2CppSystem.Guid, Cleaner>();
         public Dictionary<Il2CppSystem.Guid, Packager> PackagerEmployees = new Dictionary<Il2CppSystem.Guid, Packager>();
+        public Dictionary<Il2CppSystem.Guid, Chemist> ChemistEmployees = new Dictionary<Il2CppSystem.Guid, Chemist>();
         public Dictionary<Il2CppSystem.Guid, Dictionary<string, float>> EmployeesSpeed = new Dictionary<Il2CppSystem.Guid, Dictionary<string, float>>();
         public Dictionary<string, float> EmployeesDefaultSpeed = new Dictionary<string, float>
         {
@@ -1119,6 +1125,23 @@ namespace NastyMod_v2.Core
 
             HelperInstance.SendLoggerMsg($"Spawned {ItemAmount} of item {ItemId}");
         }
+
+        /**
+         * SetSpawnerItemAmount
+         * 
+         * Sets the amount of items to spawn.
+         * 
+         * @return void
+         */
+        public void SetSpawnerItemAmount()
+        {
+            if (SpawnerItemAmount != Properties.Settings.Default.SpawnerItemAmount)
+            {
+                Properties.Settings.Default.SpawnerItemAmount = SpawnerItemAmount;
+                Properties.Settings.Default.Save();
+            }
+            HelperInstance.SendLoggerMsg($"Spawner - Item Amount set to {SpawnerItemAmount}");
+        }
         #endregion
 
         #region Misc mods
@@ -1187,6 +1210,17 @@ namespace NastyMod_v2.Core
                     }
                 }
             }
+        
+            if (MiscUsePlantGrowSpeedMultiplier)
+            {
+                foreach (var Pot in MiscPots)
+                {
+                    var PotInstance = Pot.Value;
+
+                    // Set the grow speed multiplier for the pot
+                    if (PotInstance != null && PotInstance.GrowSpeedMultiplier != MiscPlantGrowSpeedMultiplier) PotInstance.GrowSpeedMultiplier = MiscPlantGrowSpeedMultiplier;
+                }
+            }
         }
 
         /**
@@ -1234,10 +1268,7 @@ namespace NastyMod_v2.Core
                     ItemDefinition[] array = Resources.FindObjectsOfTypeAll<ItemDefinition>();
                     foreach (ItemDefinition itemDefinition in array)
                     {
-                        if (itemDefinition != null)
-                        {
-                            itemDefinition.StackLimit = MiscStackSize;
-                        }
+                        if (itemDefinition != null) itemDefinition.StackLimit = MiscStackSize;
                     }
                 }
 
@@ -1252,27 +1283,17 @@ namespace NastyMod_v2.Core
          *
          * @return void
          */
-        public void ResetMiscStackSize() {
-            var Value = GetDefaultMiscStackSize();
-
-            if (Properties.Settings.Default.MiscStackSize != Value)
+        public void ResetMiscStackSize()
+        {
+            ItemDefinition[] itemDefinitions = Resources.FindObjectsOfTypeAll<ItemDefinition>();
+            foreach (ItemDefinition itemDefinition in itemDefinitions)
             {
-                Properties.Settings.Default.MiscStackSize = Value;
-                Properties.Settings.Default.Save();
-
-                HelperInstance.SendLoggerMsg($"Misc - Stack Size reset to {MiscStackSize}");
+                if (itemDefinition != null)
+                {
+                    // Reset the stack size to the original value
+                    if (MiscStackSizeDefaults.ContainsKey(itemDefinition.ID)) itemDefinition.StackLimit = MiscStackSizeDefaults[itemDefinition.ID];
+                }
             }
-        }
-
-        /**
-         * GetDefaultMiscStackSize
-         * 
-         * Gets the default stack size.
-         *
-         * @return int The default stack size.
-         */
-        public int GetDefaultMiscStackSize() {
-            return 20;
         }
 
         /**
@@ -1410,28 +1431,6 @@ namespace NastyMod_v2.Core
         }
 
         /**
-         * ResetMiscPlantGrowSpeed
-         * 
-         * Resets the deal success chance for items in the game to default.
-         *
-         * @return float
-         */
-        public float ResetMiscPlantGrowSpeed()
-        {
-            var Value = 1f;
-
-            if (Properties.Settings.Default.MiscPlantGrowSpeedMultiplier != Value)
-            {
-                Properties.Settings.Default.MiscPlantGrowSpeedMultiplier = Value;
-                Properties.Settings.Default.Save();
-
-                HelperInstance.SendLoggerMsg($"Misc - Deal Success Chance reset to {MiscPlantGrowSpeedMultiplier}");
-            }
-
-            return Value;
-        }
-
-        /**
          * ToggleMiscPlantGrowSpeed
          * 
          * Toggles the deal success chance for items in the game.
@@ -1443,26 +1442,6 @@ namespace NastyMod_v2.Core
             MiscUsePlantGrowSpeedMultiplier = !MiscUsePlantGrowSpeedMultiplier;
 
             HelperInstance.SendLoggerMsg($"Misc - Growth speed toggled! (now {MiscUsePlantGrowSpeedMultiplier})");
-        }
-
-        /**
-         * MiscGrowthSpeedPatch
-         * 
-         * HarmonyPatch - Patches the growth speed for items in the game.
-         * 
-         * @return void
-         */
-        [HarmonyPatch(typeof(Pot), "GetAdditiveGrowthMultiplier")]
-        public class PlantGetAdditiveGrowthMultiplierPatch
-        {
-            [HarmonyPostfix]
-            public static void Postfix(ref float __result)
-            {
-                if (Mod.Instance != null && Mod.Instance.MiscUsePlantGrowSpeedMultiplier)
-                {
-                    __result *= Mod.Instance.MiscPlantGrowSpeedMultiplier;
-                }
-            }
         }
 
         /**
@@ -2063,9 +2042,19 @@ namespace NastyMod_v2.Core
                         SetBotanistSpeed(Employee, BotanistEmployees[Employee], Key, Value);
                         HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
                         break;
+                    case "Cleaner":
+                        HelperInstance.SendLoggerMsg($"Switch case cleaner matched for '{EmployeeType}'");
+                        SetCleanerSpeed(Employee, CleanerEmployees[Employee], Key, Value);
+                        HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
+                        break;
                     case "Handler":
                         HelperInstance.SendLoggerMsg($"Switch case handler matched for '{EmployeeType}'");
                         SetPackagerSpeed(Employee, PackagerEmployees[Employee], Key, Value);
+                        HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
+                        break;
+                    case "Chemist":
+                        HelperInstance.SendLoggerMsg($"Switch case chemist matched for '{EmployeeType}'");
+                        SetChemistSpeed(Employee, ChemistEmployees[Employee], Key, Value);
                         HelperInstance.SendLoggerMsg($"Set {Key} for employee '{Employee}' to {Value}");
                         break;
                     default:
@@ -2099,9 +2088,17 @@ namespace NastyMod_v2.Core
                         Botanist BotanistEmployee = BotanistEmployees[Employee];
                         returnValue = ResetBotanistSpeed(Employee, BotanistEmployee, Key);
                         break;
+                    case "Cleaner":
+                        Cleaner CleanerEmployee = CleanerEmployees[Employee];
+                        returnValue = ResetCleanerSpeed(Employee, CleanerEmployee, Key);
+                        break;
                     case "Handler":
                         Packager PackagerEmployee = PackagerEmployees[Employee];
                         returnValue = ResetPackagerSpeed(Employee, PackagerEmployee, Key);
+                        break;
+                    case "Chemist":
+                        Chemist ChemistEmployee = ChemistEmployees[Employee];
+                        returnValue = ResetChemistSpeed(Employee, ChemistEmployee, Key);
                         break;
                     default:
                         break;
@@ -2199,6 +2196,54 @@ namespace NastyMod_v2.Core
         }
 
         /**
+         * SetCleanerSpeed
+         * 
+         * Sets a cleaner's speed value for a given key.
+         * 
+         * @param Cleaner The cleaner to set the speed of.
+         * @param Key The speed identifier value
+         * @param Value The value to set the speed to.
+         * @return void
+         */
+        public void SetCleanerSpeed(Il2CppSystem.Guid Employee, Cleaner Cleaner, string Key, float Value)
+        {
+            switch (Key)
+            {
+                case "Speed":
+                    Cleaner.Movement.MoveSpeedMultiplier = Value;
+                    EmployeesSpeed[Employee]["Speed"] = Cleaner.Movement.MoveSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /**
+         * ResetCleanerSpeed
+         * 
+         * Resets a cleaner's speed value for a given key.
+         * 
+         * @param Cleaner The cleaner to reset the speed of.
+         * @param Key The speed identifier value
+         * @return float
+         */
+        public float ResetCleanerSpeed(Il2CppSystem.Guid Employee, Cleaner Cleaner, string Key)
+        {
+            float returnValue = 0f;
+            switch (Key)
+            {
+                case "Speed":
+                    Cleaner.Movement.MoveSpeedMultiplier = Cleaner.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[Employee]["Speed"] = Cleaner.Movement.MoveSpeedMultiplier;
+                    returnValue = Cleaner.Movement.MoveSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+            return returnValue;
+        }
+
+        /**
          * SetPackagerSpeed
          * 
          * Sets a packager's speed value for a given key.
@@ -2258,6 +2303,54 @@ namespace NastyMod_v2.Core
         }
 
         /**
+         * SetChemistSpeed
+         * 
+         * Sets a chemist's speed value for a given key.
+         * 
+         * @param Chemist The chemist to set the speed of.
+         * @param Key The speed identifier value
+         * @param Value The value to set the speed to.
+         * @return void
+         */
+        public void SetChemistSpeed(Il2CppSystem.Guid Employee, Chemist Chemist, string Key, float Value)
+        {
+            switch (Key)
+            {
+                case "Speed":
+                    Chemist.Movement.MoveSpeedMultiplier = Value;
+                    EmployeesSpeed[Employee]["Speed"] = Chemist.Movement.MoveSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /**
+         * ResetChemistSpeed
+         * 
+         * Resets a chemist's speed value for a given key.
+         * 
+         * @param Chemist The chemist to reset the speed of.
+         * @param Key The speed identifier value
+         * @return float
+         */
+        public float ResetChemistSpeed(Il2CppSystem.Guid Employee, Chemist Chemist, string Key)
+        {
+            float returnValue = 0f;
+            switch (Key)
+            {
+                case "Speed":
+                    Chemist.Movement.MoveSpeedMultiplier = Chemist.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[Employee]["Speed"] = Chemist.Movement.MoveSpeedMultiplier;
+                    returnValue = Chemist.Movement.MoveSpeedMultiplier;
+                    break;
+                default:
+                    break;
+            }
+            return returnValue;
+        }
+
+        /**
          * FireEmployee
          * 
          * Fires a given employee.
@@ -2286,15 +2379,88 @@ namespace NastyMod_v2.Core
                 }
             }
         }
-        #endregion
-
 
         /**
-         * CheckProperties
+         * HireEmployee
          * 
-         * Gets all properties and their employees.
+         * Hires a given employee.
          * 
+         * @param Property The property to hire the employee for.
+         * @param EmployeeType The type of employee to hire.
+         * @return void
+         */
+        public void HireEmployee(string Property, string EmployeeType)
+        {
+            Property = GetPropertyCode(Property);
+
+            AddEmployeeCommand command = new AddEmployeeCommand();
+            Il2CppSystem.Collections.Generic.List<string> args = new Il2CppSystem.Collections.Generic.List<string>();
+
+            args.Add(EmployeeType);
+            args.Add(Property);
+
+            command.Execute(args);
+
+            HelperInstance.SendLoggerMsg($"Hired {EmployeeType} for {Property}");
+        }
+
+        /**
+         * GetPropertyCode
          * 
+         * Gets the property code for a given property.
+         * 
+         * @param Property The property to get the code for.
+         * @return string The property code.
+         */
+        public string GetPropertyCode(string Property)
+        {
+            if (EmployeesPropertyCodes.ContainsKey(Property))
+            {
+                return EmployeesPropertyCodes[Property];
+            }
+            else
+            {
+                HelperInstance.SendLoggerMsg($"Property '{Property}' not found in EmployeesPropertyCodes.");
+                return string.Empty;
+            }
+        }
+        #endregion
+
+        /**
+         * CheckPots
+         * 
+         * Gets all pots for each property
+         * 
+         * @return void
+         */
+        public IEnumerator CheckPots()
+        {
+            // Wait for 5 seconds before checking pots
+            yield return new WaitForSeconds(5f);
+
+            // Get all properties
+            var Properties = PropertyManager.FindObjectsOfType<Property>();
+            foreach (var Property in Properties)
+            {
+                var Pots = Property.FindObjectsOfType<Pot>();
+
+                // Skip if there are no pots
+                if (Pots == null || Pots.Count == 0) continue;
+
+                // Loop through each pot in the property
+                foreach (var Pot in Pots)
+                {
+                    // Filter invalid pots
+                    if (Pot == null || Pot.gameObject == null) continue;
+
+                    var PotGuid = Pot.GUID;
+                    if (!MiscPots.ContainsKey(PotGuid)) MiscPots[PotGuid] = Pot;
+                }
+            }
+
+            yield return CheckPots();
+        }
+
         /**
          * CheckEmployees
          * 
@@ -2307,9 +2473,6 @@ namespace NastyMod_v2.Core
             // Wait for 5 seconds before checking employees
             yield return new WaitForSeconds(5f);
 
-            // Clear current employees
-            Employees.Clear();
-
             // Get all properties
             var Properties = PropertyManager.FindObjectsOfType<Property>();
             foreach (var Property in Properties) {
@@ -2317,17 +2480,22 @@ namespace NastyMod_v2.Core
                 var PropertyName = Property.propertyName;
                 var PropertyEmployees = Property.Employees;
 
-                // Add the property to the employee dictionary
-                if (!Employees.ContainsKey(PropertyName))
-                {
-                    Employees[PropertyName] = new Dictionary<string, List<Employee>>();
-                }
+                // Get the property code and add it to the property codes dictionary
+                if (!EmployeesPropertyCodes.ContainsKey(PropertyName)) EmployeesPropertyCodes[PropertyName] = Property.propertyCode;
 
+                // Add the property to the employee dictionary
+                if (!Employees.ContainsKey(PropertyName)) Employees[PropertyName] = new Dictionary<string, List<Employee>>();
+
+                // Clear the employees for the property
+                Employees[PropertyName].Clear();
+
+                // Skip if there are no employees
                 if (PropertyEmployees == null || PropertyEmployees.Count == 0) continue;
 
+                // Loop through each employee in the property
                 foreach (var Employee in PropertyEmployees)
                 {
-                    // Get the employee guid, name and type;
+                    // Get the employee guid, name and type
                     var EmployeeGuid = Employee.GUID;
                     var EmployeeName = Employee.FirstName;
                     var EmployeeType = Employee.Type.ToString();
@@ -2336,29 +2504,53 @@ namespace NastyMod_v2.Core
                     switch (EmployeeType)
                     {
                         case "Botanist":
-                            var BotanistEmployee = NPCManager.FindObjectsOfType<Botanist>().FirstOrDefault(x => x.GUID == EmployeeGuid);
-                            HelperInstance.SendLoggerMsg($"Found botanist employee: {EmployeeName} ({EmployeeGuid})");
-                            BotanistEmployees[EmployeeGuid] = BotanistEmployee;
+                            if (!BotanistEmployees.ContainsKey(EmployeeGuid))
+                            {
+                                var BotanistEmployee = NPCManager.FindObjectsOfType<Botanist>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                                BotanistEmployees[EmployeeGuid] = BotanistEmployee;
+                            }
+                            break;
+                        case "Cleaner":
+                            if (!CleanerEmployees.ContainsKey(EmployeeGuid))
+                            { 
+                                var CleanerEmployee = NPCManager.FindObjectsOfType<Cleaner>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                                CleanerEmployees[EmployeeGuid] = CleanerEmployee;
+                            }
                             break;
                         case "Handler":
-                            var PackagerEmployee = NPCManager.FindObjectsOfType<Packager>().FirstOrDefault(x => x.GUID == EmployeeGuid);
-                            HelperInstance.SendLoggerMsg($"Found packager employee: {EmployeeName} ({EmployeeGuid})");
-                            PackagerEmployees[EmployeeGuid] = PackagerEmployee;
+                            if (!PackagerEmployees.ContainsKey(EmployeeGuid))
+                            {
+                                var PackagerEmployee = NPCManager.FindObjectsOfType<Packager>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                                PackagerEmployees[EmployeeGuid] = PackagerEmployee;
+                            }
+                            break;
+                        case "Chemist":
+                            if (!ChemistEmployees.ContainsKey(EmployeeGuid))
+                            {
+                                var ChemistEmployee = NPCManager.FindObjectsOfType<Chemist>().FirstOrDefault(x => x.GUID == EmployeeGuid);
+                                ChemistEmployees[EmployeeGuid] = ChemistEmployee;
+                            }
                             break;
                         default:
                             break;
                     }
 
                     // Add the employee type to the property
-                    if (!Employees[PropertyName].ContainsKey(EmployeeType))
-                    {
-                        Employees[PropertyName][EmployeeType] = new List<Employee>();
-                    }
+                    if (!Employees[PropertyName].ContainsKey(EmployeeType)) Employees[PropertyName][EmployeeType] = new List<Employee>();
 
                     // Add the employee to the property
-                    if (!Employees[PropertyName][EmployeeType].Contains(Employee))
+                    if (!Employees[PropertyName][EmployeeType].Contains(Employee)) Employees[PropertyName][EmployeeType].Add(Employee);
+                }
+            }
+
+            // Add all missing employee types to the Employees dictionary in the respective property
+            foreach (var Property in Employees)
+            {
+                foreach (var EmployeeType in Enum.GetValues(typeof(EEmployeeType)))
+                {
+                    if (!Property.Value.ContainsKey(EmployeeType.ToString()))
                     {
-                        Employees[PropertyName][EmployeeType].Add(Employee);
+                        Property.Value[EmployeeType.ToString()] = new List<Employee>();
                     }
                 }
             }
@@ -2385,17 +2577,31 @@ namespace NastyMod_v2.Core
                 if (Botanist == null || Botanist.gameObject == null || Botanist.fullName == "Botanist") continue;
 
                 var BotanistGuid = Botanist.GUID;
-
                 if (!EmployeesSpeed.ContainsKey(BotanistGuid))
                 {
                     EmployeesSpeed[BotanistGuid] = new Dictionary<string, float>();
+                    EmployeesSpeed[BotanistGuid]["Speed"] = Botanist.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[BotanistGuid]["Soil Pour Time"] = Botanist.SOIL_POUR_TIME;
+                    EmployeesSpeed[BotanistGuid]["Water Pour Time"] = Botanist.WATER_POUR_TIME;
+                    EmployeesSpeed[BotanistGuid]["Additive Pour Time"] = Botanist.ADDITIVE_POUR_TIME;
+                    EmployeesSpeed[BotanistGuid]["Seed Sow Time"] = Botanist.SEED_SOW_TIME;
+                    EmployeesSpeed[BotanistGuid]["Harvest Time"] = Botanist.HARVEST_TIME;
                 }
-                EmployeesSpeed[BotanistGuid]["Speed"] = Botanist.Movement.MoveSpeedMultiplier;
-                EmployeesSpeed[BotanistGuid]["Soil Pour Time"] = Botanist.SOIL_POUR_TIME;
-                EmployeesSpeed[BotanistGuid]["Water Pour Time"] = Botanist.WATER_POUR_TIME;
-                EmployeesSpeed[BotanistGuid]["Additive Pour Time"] = Botanist.ADDITIVE_POUR_TIME;
-                EmployeesSpeed[BotanistGuid]["Seed Sow Time"] = Botanist.SEED_SOW_TIME;
-                EmployeesSpeed[BotanistGuid]["Harvest Time"] = Botanist.HARVEST_TIME;
+            }
+
+            // Get all cleaner employees
+            var CleanerEmployees = Resources.FindObjectsOfTypeAll<Cleaner>();
+            foreach (Cleaner Cleaner in CleanerEmployees)
+            {
+                // Filter invalid cleaners
+                if (Cleaner == null || Cleaner.gameObject == null || Cleaner.fullName == "Cleaner") continue;
+
+                var CleanerGuid = Cleaner.GUID;
+                if (!EmployeesSpeed.ContainsKey(CleanerGuid))
+                {
+                    EmployeesSpeed[CleanerGuid] = new Dictionary<string, float>();
+                    EmployeesSpeed[CleanerGuid]["Speed"] = Cleaner.Movement.MoveSpeedMultiplier;
+                }
             }
 
             // Get all packager employees
@@ -2406,16 +2612,30 @@ namespace NastyMod_v2.Core
                 if (Packager == null || Packager.gameObject == null || Packager.fullName == "Packager") continue;
 
                 var PackagerGuid = Packager.GUID;
-
                 if (!EmployeesSpeed.ContainsKey(PackagerGuid))
                 {
                     EmployeesSpeed[PackagerGuid] = new Dictionary<string, float>();
+                    EmployeesSpeed[PackagerGuid]["Speed"] = Packager.Movement.MoveSpeedMultiplier;
+                    EmployeesSpeed[PackagerGuid]["Packaging Speed"] = Packager.PackagingSpeedMultiplier;
                 }
-                EmployeesSpeed[PackagerGuid]["Speed"] = Packager.Movement.MoveSpeedMultiplier;
-                EmployeesSpeed[PackagerGuid]["Packaging Speed"] = Packager.PackagingSpeedMultiplier;
             }
 
-            yield break;
+            // Get all chemist employees
+            var ChemistEmployees = Resources.FindObjectsOfTypeAll<Chemist>();
+            foreach (Chemist Chemist in ChemistEmployees)
+            {
+                // Filter invalid chemists
+                if (Chemist == null || Chemist.gameObject == null || Chemist.fullName == "Chemist") continue;
+
+                var ChemistGuid = Chemist.GUID;
+                if (!EmployeesSpeed.ContainsKey(ChemistGuid))
+                {
+                    EmployeesSpeed[ChemistGuid] = new Dictionary<string, float>();
+                    EmployeesSpeed[ChemistGuid]["Speed"] = Chemist.Movement.MoveSpeedMultiplier;
+                }
+            }
+
+            yield return CheckEmployeeSpeeds();
         }
 
         /**

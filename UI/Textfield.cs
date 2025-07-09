@@ -231,7 +231,10 @@ namespace NastyMod_v2.UI
         private void HandleTextInput(Event current)
         {
             // Check if the character is a valid input
-            if (current.character == '\0' || (!char.IsLetterOrDigit(current.character) && !char.IsWhiteSpace(current.character))) return;
+            if (current.character == '\0' ||
+                (!char.IsLetterOrDigit(current.character) &&
+                 !char.IsWhiteSpace(current.character) &&
+                 current.character != ',')) return;
 
             // Check for input cooldown and character
             if (((Time.unscaledTime - LastInputTime) <= InputCooldown) && LastInputCharacter == current.character.ToString()) return;

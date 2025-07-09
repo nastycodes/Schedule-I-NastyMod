@@ -89,5 +89,14 @@
     <Setting Name="MiscInstantMixing" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="MenuWidth" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1100</Value>
+    </Setting>
+    <Setting Name="MenuHeight" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">560</Value>
+    </Setting>
+    <Setting Name="MenuTabWidth" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1072</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

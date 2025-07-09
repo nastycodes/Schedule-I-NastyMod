@@ -119,6 +119,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="UI\Cursors.cs" />
     <Compile Include="UI\Helper.cs" />
     <Compile Include="UI\Menu.cs" />
     <Compile Include="UI\Renderer.cs" />
