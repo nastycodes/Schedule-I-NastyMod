@@ -682,14 +682,14 @@ The mod automatically saves your preferences to `Properties\Settings.settings`:
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nasty-codes-software/Schedule-I-NastyMod)
-[![GitHub Forks](https://img.shields.io/github/forks/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nasty-codes-software/Schedule-I-NastyMod)
-[![GitHub Issues](https://img.shields.io/github/issues/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nasty-codes-software/Schedule-I-NastyMod/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod)
+[![GitHub Forks](https://img.shields.io/github/forks/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod)
+[![GitHub Issues](https://img.shields.io/github/issues/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod/issues)
 
 **⭐ If you enjoy this mod, please consider giving it a star!**
 
-[🐛 Report Bug](https://github.com/nasty-codes-software/Schedule-I-NastyMod/issues) •
-[💡 Request Feature](https://github.com/nasty-codes-software/Schedule-I-NastyMod/issues) •
+[🐛 Report Bug](https://github.com/nastycodes/Schedule-I-NastyMod/issues) •
+[💡 Request Feature](https://github.com/nastycodes/Schedule-I-NastyMod/issues) •
 [💬 Join Discord](https://discord.gg/CfZXMqtfvv)
 
 ---
