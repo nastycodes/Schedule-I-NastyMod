@@ -682,9 +682,9 @@ The mod automatically saves your preferences to `Properties\Settings.settings`:
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod)
-[![GitHub Forks](https://img.shields.io/github/forks/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod/forks)
-[![GitHub Issues](https://img.shields.io/github/issues/nasty-codes/nastymod-v2?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/nastycodes/Schedule-I-NastyMod?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod)
+[![GitHub Forks](https://img.shields.io/github/forks/nastycodes/Schedule-I-NastyMod?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod/forks)
+[![GitHub Issues](https://img.shields.io/github/issues/nastycodes/Schedule-I-NastyMod?style=for-the-badge&logo=github)](https://github.com/nastycodes/Schedule-I-NastyMod/issues)
 
 **⭐ If you enjoy this mod, please consider giving it a star!**
 
